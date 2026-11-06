@@ -1,0 +1,22 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Configuração local e segredos
+config.toml
+
+# Dados gerados localmente
+data/*.sqlite
+data/*.sqlite-*
+data/images/*
+!data/images/.gitkeep
+
+# Ambiente e editores
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/
+npm-debug.log*

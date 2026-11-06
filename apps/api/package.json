@@ -1,0 +1,17 @@
+{
+  "name": "@fabrica/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "predev": "npm run build -w @fabrica/contracts && npm run build",
+    "dev": "concurrently -n types,server -c magenta,yellow \"tsc -p tsconfig.json --watch --preserveWatchOutput\" \"node --watch dist/server.js\"",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@fabrica/contracts": "0.1.0",
+    "fastify": "^5.6.2"
+  }
+}

@@ -1,0 +1,41 @@
+# Plano de implementação
+
+Cada task deve terminar com seus critérios de aceite passando antes da próxima começar.
+
+## Progresso
+
+- [x] Task 01 — Fundação do projeto
+- [ ] Task 02 — Configuração segura
+- [ ] Task 03 — Contratos do domínio
+- [ ] Task 04 — Persistência
+- [ ] Task 05 — Geração textual com IA
+- [ ] Task 06 — Geração da imagem
+- [ ] Task 07 — API pública do jogo
+- [ ] Task 08 — Tela de criação
+- [ ] Task 09 — Tela de investigação
+- [ ] Task 10 — Acusação única
+- [ ] Task 11 — Revelação
+- [ ] Task 12 — Controle de custos e robustez
+- [ ] Task 13 — Testes finais e documentação
+
+## Task 01 — Fundação do projeto
+
+Entregas:
+
+- Workspace npm com TypeScript.
+- Aplicação React em `apps/web`.
+- API Fastify em `apps/api`.
+- Contratos compartilhados em `packages/contracts`.
+- Scripts de desenvolvimento, lint, typecheck, teste e build.
+- Rota `GET /api/health` consumida pela interface.
+
+Critérios de aceite:
+
+- O frontend abre em `http://localhost:5173`.
+- A API responde em `http://localhost:3000/api/health`.
+- A interface consegue consultar a saúde da API pelo proxy do Vite.
+- `npm run lint`, `npm run typecheck`, `npm test` e `npm run build` passam.
+
+## Próxima task
+
+Task 02 implementará o carregamento e a validação do `config.toml`, sem adicionar uma chave real ao repositório.
