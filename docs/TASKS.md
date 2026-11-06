@@ -12,7 +12,7 @@ Cada task deve terminar com seus critérios de aceite passando antes da próxima
 - [x] Task 06 — Geração da imagem
 - [x] Task 07 — API pública do jogo
 - [x] Task 08 — Tela de criação
-- [ ] Task 09 — Tela de investigação
+- [x] Task 09 — Tela de investigação
 - [ ] Task 10 — Acusação única
 - [ ] Task 11 — Revelação
 - [ ] Task 12 — Controle de custos e robustez
@@ -189,6 +189,30 @@ Critérios de aceite:
 - Falhas não deixam a interface presa na tela de carregamento.
 - A interface funciona em telas grandes e pequenas.
 
+## Task 09 — Tela de investigação
+
+Entregas:
+
+- Carregamento tipado do dossiê público por UUID.
+- Rota persistente `/cases/:caseId`, inclusive após recarregar a página.
+- Visão geral com imagem, incidente e pistas visuais.
+- Fichas completas de suspeitos com ligação ao caso e álibi.
+- Grade de documentos com leitura integral em diálogo acessível.
+- Caderno de anotações salvo localmente por caso.
+- Estados de carregamento, caso inexistente e falha da API.
+- Navegação responsiva entre visão geral, suspeitos e documentos.
+- Área de acusação visível, mas bloqueada até a regra de tentativa única.
+
+Critérios de aceite:
+
+- Um caso `ready` pode ser aberto diretamente pelo UUID.
+- Cena, suspeitos, documentos e pistas correspondem ao contrato público.
+- Cada documento pode ser aberto, lido e fechado por botão ou tecla Escape.
+- Atualizar a página não perde o caso nem as anotações locais.
+- Nenhum campo da solução privada é solicitado ou renderizado.
+- Casos inválidos ou inexistentes apresentam recuperação amigável.
+- A interface funciona em telas grandes e pequenas.
+
 ## Próxima task
 
-Task 09 implementará a tela de investigação com cena, suspeitos e leitura dos documentos do dossiê.
+Task 10 implementará a acusação única por nome, validação no servidor e bloqueio definitivo de uma segunda tentativa.

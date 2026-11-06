@@ -3,10 +3,12 @@ import {
   apiErrorResponseSchema,
   caseStatusResponseSchema,
   createCaseRequestSchema,
+  publicCaseSchema,
 } from "@fabrica/contracts";
 import type {
   CaseStatusResponse,
   CreateCaseRequest,
+  PublicCase,
 } from "@fabrica/contracts";
 
 export class PublicApiError extends Error {
@@ -58,7 +60,23 @@ export async function waitForCase(
   }
 }
 
+export async function getCase(
+  caseId: string,
+  signal?: AbortSignal,
+): Promise<PublicCase> {
+  const response = await fetch(API_PATHS.case(caseId), {
+    signal: signal ?? null,
+  });
+  const body = await parseApiBody(response);
+  return publicCaseSchema.parse(body);
+}
+
 async function parseStatusResponse(response: Response) {
+  const body = await parseApiBody(response);
+  return caseStatusResponseSchema.parse(body);
+}
+
+async function parseApiBody(response: Response): Promise<unknown> {
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const error = apiErrorResponseSchema.safeParse(body);
@@ -69,7 +87,7 @@ async function parseStatusResponse(response: Response) {
       response.status,
     );
   }
-  return caseStatusResponseSchema.parse(body);
+  return body;
 }
 
 function delay(milliseconds: number, signal?: AbortSignal) {

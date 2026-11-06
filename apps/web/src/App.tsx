@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { API_PATHS } from "@fabrica/contracts/health";
 import type { HealthResponse } from "@fabrica/contracts/health";
 import { CreateCasePage } from "./features/case-creation/CreateCasePage";
-import { InvestigationHandoff } from "./features/case-creation/InvestigationHandoff";
+import { InvestigationPage } from "./features/investigation/InvestigationPage";
 
 type ApiState =
   | { kind: "loading" }
@@ -78,9 +78,9 @@ export function App() {
           onCaseReady={openInvestigation}
         />
       ) : (
-        <InvestigationHandoff
+        <InvestigationPage
           caseId={route.caseId}
-          onCreateAnother={returnToCreation}
+          onReturnHome={returnToCreation}
         />
       )}
 
