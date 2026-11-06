@@ -17,6 +17,14 @@ timeout_seconds = 120
 max_retries = 1
 max_output_tokens = 8000
 
+[images]
+directory = "./data/images"
+public_path = "/generated-images"
+size = "1536x1024"
+format = "webp"
+compression = 85
+fallback_enabled = true
+
 [generation]
 provider = "mock"
 suspect_count = 3

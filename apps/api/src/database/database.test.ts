@@ -35,8 +35,8 @@ describe("database migrations", () => {
   it("creates the initial schema exactly once", async () => {
     const { database } = await createFileDatabase();
 
-    expect(getSchemaVersion(database)).toBe(2);
-    expect(runMigrations(database)).toBe(2);
+    expect(getSchemaVersion(database)).toBe(3);
+    expect(runMigrations(database)).toBe(3);
 
     const migrations = database
       .prepare("SELECT version, name FROM schema_migrations")
@@ -50,6 +50,7 @@ describe("database migrations", () => {
     expect(migrations).toEqual([
       { version: 1, name: "initial_cases_and_accusations" },
       { version: 2, name: "generation_metadata" },
+      { version: 3, name: "image_metadata" },
     ]);
     expect(tables.map((table) => table.name)).toEqual([
       "accusations",

@@ -12,7 +12,7 @@ A geração usa um provedor intercambiável definido por `generation.provider` n
 3. A saída estruturada é validada pelo schema compartilhado.
 4. Uma segunda validação confere quantidades e preservação exata do briefing.
 5. Rascunho público, solução privada, prompt visual e metadados de uso são persistidos.
-6. O caso passa para `generating_image`, que será tratado na Task 06.
+6. O caso passa para `generating_image` e o fluxo descrito em [`images.md`](images.md) prepara a cena.
 
 Em qualquer falha, o caso passa para `failed` com uma mensagem pública genérica. Detalhes do provedor e a chave nunca são persistidos como mensagem de erro.
 

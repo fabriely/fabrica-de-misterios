@@ -17,7 +17,7 @@ Crie a configuração local antes da primeira execução:
 Copy-Item config.example.toml config.toml
 ```
 
-Preencha `openai.api_key` em `config.toml`. Esse arquivo é local, ignorado pelo Git e lido somente pela API.
+Esse arquivo é local, ignorado pelo Git e lido somente pela API. A chave só precisa ser preenchida quando `generation.provider = "openai"`.
 
 ```bash
 npm install
@@ -40,6 +40,8 @@ npm run build
 O andamento do MVP está registrado em [`docs/TASKS.md`](docs/TASKS.md).
 
 A geração textual e a troca entre provedor mock e OpenAI estão descritas em [`docs/generation.md`](docs/generation.md).
+
+A geração de uma única cena, o armazenamento local e o fallback visual estão descritos em [`docs/images.md`](docs/images.md).
 
 ## Segurança da configuração
 

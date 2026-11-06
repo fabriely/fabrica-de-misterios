@@ -24,6 +24,11 @@ describe("loadConfig", () => {
 
     expect(config.server).toEqual({ host: "127.0.0.1", port: 3000 });
     expect(config.openai.text_model).toBe("gpt-6-luna");
+    expect(config.images).toMatchObject({
+      directory: "./data/images",
+      size: "1536x1024",
+      format: "webp",
+    });
     expect(config.generation.image_count).toBe(1);
   });
 
@@ -125,6 +130,14 @@ image_quality = "low"
 timeout_seconds = 120
 max_retries = 1
 max_output_tokens = 8000
+
+[images]
+directory = "./data/images"
+public_path = "/generated-images"
+size = "1536x1024"
+format = "webp"
+compression = 85
+fallback_enabled = true
 
 [generation]
 provider = "mock"

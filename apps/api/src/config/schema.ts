@@ -28,10 +28,27 @@ export const configSchema = z
           "xhigh",
           "max",
         ]),
-        image_quality: z.enum(["low", "medium", "high", "auto"]),
+        image_quality: z.enum([
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "auto",
+        ]),
         timeout_seconds: z.number().int().min(5).max(600),
         max_retries: z.number().int().min(0).max(3),
         max_output_tokens: z.number().int().min(1_000).max(30_000),
+      })
+      .strict(),
+    images: z
+      .object({
+        directory: trimmedString,
+        public_path: z.string().trim().startsWith("/").min(2),
+        size: z.enum(["1024x1024", "1536x1024", "1024x1536"]),
+        format: z.enum(["png", "webp", "jpeg"]),
+        compression: z.number().int().min(0).max(100),
+        fallback_enabled: z.boolean(),
       })
       .strict(),
     generation: z
@@ -67,6 +84,7 @@ export type SafeConfigSummary = {
   openai: Omit<AppConfig["openai"], "api_key"> & {
     api_key: "[REDACTED]";
   };
+  images: AppConfig["images"];
   generation: AppConfig["generation"];
 };
 
@@ -84,6 +102,7 @@ export function createSafeConfigSummary(config: AppConfig): SafeConfigSummary {
       max_retries: config.openai.max_retries,
       max_output_tokens: config.openai.max_output_tokens,
     },
+    images: { ...config.images },
     generation: { ...config.generation },
   };
 }

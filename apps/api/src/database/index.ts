@@ -12,6 +12,7 @@ export type { StoredAccusation } from "./accusation-repository.js";
 export type {
   CreatePendingCaseInput,
   GenerationMetadata,
+  ImageMetadata,
   StoredGenerationDraft,
 } from "./case-repository.js";
 export type { Migration } from "./migrate.js";

@@ -9,7 +9,7 @@ Cada task deve terminar com seus critérios de aceite passando antes da próxima
 - [x] Task 03 — Contratos do domínio
 - [x] Task 04 — Persistência
 - [x] Task 05 — Geração textual com IA
-- [ ] Task 06 — Geração da imagem
+- [x] Task 06 — Geração da imagem
 - [ ] Task 07 — API pública do jogo
 - [ ] Task 08 — Tela de criação
 - [ ] Task 09 — Tela de investigação
@@ -120,6 +120,28 @@ Critérios de aceite:
 - Uma falha marca o caso como `failed` sem persistir detalhes sensíveis.
 - Todos os testes automatizados rodam sem chamar a OpenAI.
 
+## Task 06 — Geração da imagem
+
+Entregas:
+
+- Provedor mock que gera SVG local sem custo.
+- Provedor OpenAI usando Image API com exatamente uma imagem.
+- Modelo, qualidade, tamanho, formato, compressão e diretório configuráveis.
+- Armazenamento local atômico com nome derivado do UUID do caso.
+- URL pública separada do caminho interno do arquivo.
+- Fallback SVG configurável quando o provedor externo falha.
+- Persistência interna de provedor, modelo, tokens, arquivo e uso de fallback.
+- Finalização do dossiê público e transição para `ready`.
+
+Critérios de aceite:
+
+- O mock conclui o caso com uma imagem local e zero tokens.
+- A OpenAI recebe `n = 1` e todos os controles de custo configurados.
+- Uma resposta sem imagem é recusada.
+- Falha externa usa fallback e mantém o caso jogável quando habilitado.
+- Falha sem fallback marca o caso como `failed` sem expor detalhes do provedor.
+- Todos os testes automatizados rodam sem chamar a OpenAI.
+
 ## Próxima task
 
-Task 06 implementará a geração de uma imagem, armazenamento local e fallback visual.
+Task 07 implementará as rotas públicas para criar e consultar casos, servir a imagem e orquestrar as duas etapas de geração.

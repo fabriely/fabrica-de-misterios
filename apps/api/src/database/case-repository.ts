@@ -42,6 +42,11 @@ type CaseRow = {
   generation_provider: string | null;
   openai_response_id: string | null;
   usage_json: string | null;
+  image_provider: string | null;
+  image_model: string | null;
+  image_usage_json: string | null;
+  image_file_path: string | null;
+  image_is_fallback: number;
   created_at: string;
   updated_at: string;
 };
@@ -66,9 +71,22 @@ export type GenerationMetadata = {
 };
 
 export type StoredGenerationDraft = {
+  createdAt: string;
   publicCase: GeneratedPublicCase;
   privateSolution: PrivateSolution;
   imagePrompt: string;
+};
+
+export type ImageMetadata = {
+  provider: "mock" | "openai" | "fallback";
+  model: string;
+  filePath: string;
+  isFallback: boolean;
+  usage: {
+    inputTokens: number | null;
+    outputTokens: number | null;
+    totalTokens: number | null;
+  };
 };
 
 export class CaseRepository {
@@ -149,7 +167,10 @@ export class CaseRepository {
     return this.requireStatus(caseId);
   }
 
-  complete(caseInput: PublicCase): CaseStatusResponse {
+  complete(
+    caseInput: PublicCase,
+    imageMetadata?: ImageMetadata,
+  ): CaseStatusResponse {
     const publicCase = publicCaseSchema.parse(caseInput);
     const privateSolution = this.requirePrivateSolution(publicCase.id);
     caseBundleSchema.parse({ publicCase, privateSolution });
@@ -160,11 +181,25 @@ export class CaseRepository {
           status = 'ready',
           progress = 100,
           public_case_json = ?,
+          image_provider = ?,
+          image_model = ?,
+          image_usage_json = ?,
+          image_file_path = ?,
+          image_is_fallback = ?,
           error_message = NULL,
           updated_at = ?
         WHERE id = ? AND status = 'generating_image'`,
       )
-      .run(JSON.stringify(publicCase), new Date().toISOString(), publicCase.id);
+      .run(
+        JSON.stringify(publicCase),
+        imageMetadata?.provider ?? null,
+        imageMetadata?.model ?? null,
+        imageMetadata ? JSON.stringify(imageMetadata.usage) : null,
+        imageMetadata?.filePath ?? null,
+        imageMetadata?.isFallback ? 1 : 0,
+        new Date().toISOString(),
+        publicCase.id,
+      );
 
     this.assertUpdated(result.changes, publicCase.id, "concluir geração");
     return this.requireStatus(publicCase.id);
@@ -221,6 +256,7 @@ export class CaseRepository {
     }
 
     return {
+      createdAt: timestampSchema.parse(row.created_at),
       publicCase: parseStoredJson(
         row.draft_public_case_json,
         generatedPublicCaseSchema,
@@ -234,6 +270,33 @@ export class CaseRepository {
         caseId,
       ),
       imagePrompt: row.image_prompt,
+    };
+  }
+
+  findImageMetadata(caseId: string): ImageMetadata | null {
+    const row = this.findRow(caseId);
+    if (
+      !row?.image_provider ||
+      !row.image_model ||
+      !row.image_usage_json ||
+      !row.image_file_path
+    ) {
+      return null;
+    }
+
+    return {
+      provider: z.enum(["mock", "openai", "fallback"]).parse(
+        row.image_provider,
+      ),
+      model: row.image_model,
+      filePath: row.image_file_path,
+      isFallback: row.image_is_fallback === 1,
+      usage: parseStoredJson(
+        row.image_usage_json,
+        imageUsageSchema,
+        "uso da imagem",
+        caseId,
+      ),
     };
   }
 
@@ -342,6 +405,14 @@ const generationUsageSchema = z
     inputTokens: nullableTokenCountSchema,
     outputTokens: nullableTokenCountSchema,
     reasoningTokens: nullableTokenCountSchema,
+    totalTokens: nullableTokenCountSchema,
+  })
+  .strict();
+
+const imageUsageSchema = z
+  .object({
+    inputTokens: nullableTokenCountSchema,
+    outputTokens: nullableTokenCountSchema,
     totalTokens: nullableTokenCountSchema,
   })
   .strict();
