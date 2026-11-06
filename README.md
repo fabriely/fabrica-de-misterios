@@ -45,6 +45,8 @@ A geração de uma única cena, o armazenamento local e o fallback visual estão
 
 As rotas para criar e consultar casos estão documentadas em [`docs/api.md`](docs/api.md).
 
+O formulário e o acompanhamento visual da geração estão descritos em [`docs/frontend.md`](docs/frontend.md).
+
 ## Segurança da configuração
 
 - Nunca coloque a chave em `config.example.toml`, arquivos do frontend ou commits.

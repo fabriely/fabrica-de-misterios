@@ -11,7 +11,7 @@ Cada task deve terminar com seus critérios de aceite passando antes da próxima
 - [x] Task 05 — Geração textual com IA
 - [x] Task 06 — Geração da imagem
 - [x] Task 07 — API pública do jogo
-- [ ] Task 08 — Tela de criação
+- [x] Task 08 — Tela de criação
 - [ ] Task 09 — Tela de investigação
 - [ ] Task 10 — Acusação única
 - [ ] Task 11 — Revelação
@@ -165,6 +165,30 @@ Critérios de aceite:
 - A API pública nunca contém a solução privada.
 - A imagem gerada pode ser carregada pela URL presente no dossiê.
 
+## Task 08 — Tela de criação
+
+Entregas:
+
+- Formulário responsivo com período, crime, cenário, dificuldade e tom.
+- Campo condicional para períodos personalizados.
+- Opções acessíveis por teclado usando controles de rádio reais.
+- Integração tipada com `POST /api/cases`.
+- Polling de `GET /api/cases/:caseId/status`.
+- Tela de progresso para todas as etapas de geração.
+- Exibição de falhas públicas com possibilidade de tentar novamente.
+- Transição para `/cases/:caseId` quando o dossiê fica pronto.
+- Proxy de desenvolvimento para API e imagens geradas.
+
+Critérios de aceite:
+
+- O formulário não pode ser enviado sem cenário ou período personalizado obrigatório.
+- As escolhas são convertidas para o contrato compartilhado sem valores improvisados.
+- O botão fica indisponível enquanto a API não estiver conectada.
+- Um caso mock pode ser criado integralmente pelo navegador.
+- O progresso acompanha os estados persistidos pela API.
+- Falhas não deixam a interface presa na tela de carregamento.
+- A interface funciona em telas grandes e pequenas.
+
 ## Próxima task
 
-Task 08 implementará a tela de criação com as escolhas do briefing e acompanhamento visual da geração.
+Task 09 implementará a tela de investigação com cena, suspeitos e leitura dos documentos do dossiê.
