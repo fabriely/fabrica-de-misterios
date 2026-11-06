@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { API_PATHS } from "@fabrica/contracts";
-import type { HealthResponse } from "@fabrica/contracts";
+import { API_PATHS } from "@fabrica/contracts/health";
+import type { HealthResponse } from "@fabrica/contracts/health";
 
 type ApiState =
   | { kind: "loading" }

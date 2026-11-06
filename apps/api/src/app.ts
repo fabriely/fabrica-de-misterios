@@ -1,6 +1,6 @@
 import Fastify from "fastify";
-import { API_PATHS } from "@fabrica/contracts";
-import type { HealthResponse } from "@fabrica/contracts";
+import { API_PATHS } from "@fabrica/contracts/health";
+import type { HealthResponse } from "@fabrica/contracts/health";
 
 const API_VERSION = "0.1.0";
 

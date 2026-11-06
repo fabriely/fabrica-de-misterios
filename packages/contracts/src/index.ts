@@ -1,9 +1,65 @@
-export const API_PATHS = {
-  health: "/api/health",
-} as const;
+export { API_PATHS } from "./health.js";
+export type { HealthResponse } from "./health.js";
 
-export type HealthResponse = {
-  status: "ok";
-  service: "fabrica-api";
-  version: string;
-};
+export {
+  caseBriefingSchema,
+  createCaseRequestSchema,
+  crimeTypeSchema,
+  difficultySchema,
+  mysteryToneSchema,
+  periodPresetSchema,
+} from "./briefing.js";
+export type {
+  CaseBriefing,
+  CreateCaseRequest,
+  CrimeType,
+  Difficulty,
+  MysteryTone,
+  PeriodPreset,
+} from "./briefing.js";
+
+export {
+  caseBundleSchema,
+  caseDocumentSchema,
+  caseGenerationOutputSchema,
+  caseGenerationStatusSchema,
+  caseStatusResponseSchema,
+  documentTypeSchema,
+  generatedPublicCaseSchema,
+  generatedSceneSchema,
+  privateSolutionDraftSchema,
+  privateSolutionSchema,
+  publicCaseSchema,
+  publicSceneSchema,
+  suspectSchema,
+  timelineEventSchema,
+  visualClueSchema,
+} from "./case.js";
+export type {
+  CaseBundle,
+  CaseDocument,
+  CaseGenerationOutput,
+  CaseGenerationStatus,
+  CaseStatusResponse,
+  DocumentType,
+  GeneratedPublicCase,
+  GeneratedScene,
+  PrivateSolution,
+  PrivateSolutionDraft,
+  PublicCase,
+  PublicScene,
+  Suspect,
+  TimelineEvent,
+  VisualClue,
+} from "./case.js";
+
+export {
+  accusationRecordSchema,
+  accusationResultSchema,
+  submitAccusationRequestSchema,
+} from "./accusation.js";
+export type {
+  AccusationRecord,
+  AccusationResult,
+  SubmitAccusationRequest,
+} from "./accusation.js";

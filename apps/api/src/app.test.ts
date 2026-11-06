@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { API_PATHS } from "@fabrica/contracts";
+import { API_PATHS } from "@fabrica/contracts/health";
 import { buildApp } from "./app.js";
 
 const apps: ReturnType<typeof buildApp>[] = [];

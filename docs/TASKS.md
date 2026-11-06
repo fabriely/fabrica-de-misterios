@@ -6,7 +6,7 @@ Cada task deve terminar com seus critérios de aceite passando antes da próxima
 
 - [x] Task 01 — Fundação do projeto
 - [x] Task 02 — Configuração segura
-- [ ] Task 03 — Contratos do domínio
+- [x] Task 03 — Contratos do domínio
 - [ ] Task 04 — Persistência
 - [ ] Task 05 — Geração textual com IA
 - [ ] Task 06 — Geração da imagem
@@ -54,6 +54,27 @@ Critérios de aceite:
 - Mensagens de erro indicam os campos, mas nunca o valor da chave.
 - Somente um resumo redigido pode ser registrado em log.
 
+## Task 03 — Contratos do domínio
+
+Entregas:
+
+- Briefing com período, tipo de crime, cenário, dificuldade e tom.
+- Schemas de suspeitos, documentos, pistas visuais e cena.
+- Conteúdo público separado da solução privada.
+- Contrato estruturado para a futura saída da IA.
+- Estados públicos do processo de geração.
+- Acusação por nome e resultado revelado.
+- Validação cruzada de culpado, evidências, IDs e vínculo entre registros.
+
+Critérios de aceite:
+
+- Um caso coerente passa pela validação.
+- Culpado inexistente ou evidência privada/inexistente é rejeitado.
+- IDs duplicados são rejeitados.
+- Campos privados fazem o schema público falhar.
+- Caso público e solução privada precisam usar o mesmo ID.
+- A acusação aceita um único nome não vazio.
+
 ## Próxima task
 
-Task 03 definirá os contratos completos de caso, suspeitos, documentos, solução privada e acusação.
+Task 04 implementará SQLite, migrações e repositórios para casos e acusações.
