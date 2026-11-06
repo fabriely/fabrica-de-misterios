@@ -40,8 +40,18 @@ export const accusationResultSchema = z
   })
   .strict();
 
+export const accusationOutcomeSchema = accusationResultSchema
+  .pick({
+    caseId: true,
+    correct: true,
+    accusedName: true,
+    submittedAt: true,
+  })
+  .strict();
+
 export type SubmitAccusationRequest = z.infer<
   typeof submitAccusationRequestSchema
 >;
 export type AccusationRecord = z.infer<typeof accusationRecordSchema>;
 export type AccusationResult = z.infer<typeof accusationResultSchema>;
+export type AccusationOutcome = z.infer<typeof accusationOutcomeSchema>;

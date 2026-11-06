@@ -15,6 +15,8 @@ import {
   LocalImageStorage,
   createCaseImageGenerator,
 } from "./image/index.js";
+import { AccusationService } from "./accusation/index.js";
+import { AccusationRepository } from "./database/index.js";
 
 let storage: OpenDatabaseResult | undefined;
 const projectRoot = fileURLToPath(new URL("../../../", import.meta.url));
@@ -26,6 +28,10 @@ try {
     baseDirectory: projectRoot,
   });
   const cases = new CaseRepository(storage.database);
+  const accusations = new AccusationService(
+    cases,
+    new AccusationRepository(storage.database),
+  );
   const textGeneration = new CaseTextGenerationService(
     cases,
     createTextCaseGenerator(config),
@@ -47,6 +53,7 @@ try {
   const app = buildApp({
     game: {
       cases,
+      accusations,
       generationQueue,
       images: config.images,
       baseDirectory: projectRoot,

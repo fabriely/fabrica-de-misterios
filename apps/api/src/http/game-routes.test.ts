@@ -6,7 +6,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import { API_PATHS } from "@fabrica/contracts";
 import { buildApp } from "../app.js";
 import type { AppConfig } from "../config/index.js";
-import { CaseRepository, openDatabase } from "../database/index.js";
+import {
+  AccusationRepository,
+  CaseRepository,
+  openDatabase,
+} from "../database/index.js";
+import { AccusationService } from "../accusation/index.js";
 import {
   CaseGenerationQueue,
   CaseTextGenerationService,
@@ -152,6 +157,108 @@ describe("public game API", () => {
     expect(response.statusCode).toBe(404);
     expect(response.json()).toMatchObject({ code: "not_found" });
   });
+
+  it("accepts exactly one accusation and exposes only its minimal outcome", async () => {
+    const context = await createGameContext();
+    const creation = await context.app.inject({
+      method: "POST",
+      url: API_PATHS.cases,
+      payload: validCreateCaseRequest(),
+    });
+    const caseId = creation.json().caseId as string;
+    await context.queue.drain();
+
+    const accusation = await context.app.inject({
+      method: "POST",
+      url: API_PATHS.accusation(caseId),
+      payload: { suspectName: "  helena prado  " },
+    });
+
+    expect(accusation.statusCode, accusation.body).toBe(201);
+    expect(accusation.json()).toMatchObject({
+      caseId,
+      correct: true,
+      accusedName: "Helena Prado",
+    });
+    expect(accusation.body).not.toContain("culpritId");
+    expect(accusation.body).not.toContain("motive");
+
+    const persisted = await context.app.inject({
+      method: "GET",
+      url: API_PATHS.accusation(caseId),
+    });
+    expect(persisted.json()).toEqual(accusation.json());
+
+    const secondAttempt = await context.app.inject({
+      method: "POST",
+      url: API_PATHS.accusation(caseId),
+      payload: { suspectName: "Otávio Leme" },
+    });
+    expect(secondAttempt.statusCode).toBe(409);
+    expect(secondAttempt.json()).toMatchObject({
+      code: "accusation_already_submitted",
+    });
+  });
+
+  it("records an incorrect accusation without revealing the culprit", async () => {
+    const context = await createGameContext();
+    const creation = await context.app.inject({
+      method: "POST",
+      url: API_PATHS.cases,
+      payload: validCreateCaseRequest(),
+    });
+    const caseId = creation.json().caseId as string;
+    await context.queue.drain();
+
+    const invalid = await context.app.inject({
+      method: "POST",
+      url: API_PATHS.accusation(caseId),
+      payload: { suspectName: "Pessoa inexistente" },
+    });
+    expect(invalid.statusCode).toBe(400);
+
+    const accusation = await context.app.inject({
+      method: "POST",
+      url: API_PATHS.accusation(caseId),
+      payload: { suspectName: "Otávio Leme" },
+    });
+
+    expect(accusation.statusCode, accusation.body).toBe(201);
+    expect(accusation.json()).toMatchObject({
+      correct: false,
+      accusedName: "Otávio Leme",
+    });
+    expect(accusation.body).not.toContain("Helena Prado");
+  });
+
+  it("allows only one winner between concurrent accusation requests", async () => {
+    const context = await createGameContext();
+    const creation = await context.app.inject({
+      method: "POST",
+      url: API_PATHS.cases,
+      payload: validCreateCaseRequest(),
+    });
+    const caseId = creation.json().caseId as string;
+    await context.queue.drain();
+
+    const attempts = await Promise.all([
+      context.app.inject({
+        method: "POST",
+        url: API_PATHS.accusation(caseId),
+        payload: { suspectName: "Helena Prado" },
+      }),
+      context.app.inject({
+        method: "POST",
+        url: API_PATHS.accusation(caseId),
+        payload: { suspectName: "Otávio Leme" },
+      }),
+    ]);
+
+    expect(attempts.map((response) => response.statusCode).sort()).toEqual([
+      201,
+      409,
+    ]);
+  });
 });
 
 async function createGameContext() {
@@ -160,6 +267,10 @@ async function createGameContext() {
   const opened = openDatabase({ filename: ":memory:" });
   databases.push(opened.database);
   const cases = new CaseRepository(opened.database);
+  const accusations = new AccusationService(
+    cases,
+    new AccusationRepository(opened.database),
+  );
   const images = imagesConfig();
   const workflow = new DefaultCaseGenerationWorkflow(
     new CaseTextGenerationService(
@@ -178,6 +289,7 @@ async function createGameContext() {
   const app = buildApp({
     game: {
       cases,
+      accusations,
       generationQueue: queue,
       images,
       baseDirectory: directory,

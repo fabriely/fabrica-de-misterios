@@ -7,15 +7,22 @@ import {
   apiErrorResponseSchema,
   caseIdSchema,
   createCaseRequestSchema,
+  submitAccusationRequestSchema,
 } from "@fabrica/contracts";
 import type { ApiErrorCode, CaseStatusResponse } from "@fabrica/contracts";
 import type { AppConfig } from "../config/index.js";
 import type { CaseRepository } from "../database/index.js";
 import type { CaseGenerationQueue } from "../generation/index.js";
+import type { AccusationService } from "../accusation/index.js";
+import {
+  AccusationAlreadyExistsError,
+  InvalidAccusationSuspectError,
+} from "../database/index.js";
 
 export type GameRoutesDependencies = {
   cases: CaseRepository;
   generationQueue: CaseGenerationQueue;
+  accusations: AccusationService;
   images: Pick<AppConfig["images"], "directory" | "public_path">;
   baseDirectory?: string;
 };
@@ -110,6 +117,92 @@ export function registerGameRoutes(
       }
 
       return reply.send(publicCase);
+    },
+  );
+
+  app.get<{ Params: { caseId: string } }>(
+    "/api/cases/:caseId/accusation",
+    async (request, reply) => {
+      const caseId = parseCaseId(request.params.caseId);
+      if (!caseId) {
+        return sendError(
+          reply,
+          400,
+          "invalid_request",
+          "O identificador do caso é inválido.",
+        );
+      }
+      if (!dependencies.cases.findStatus(caseId)) return caseNotFound(reply);
+
+      const outcome = dependencies.accusations.findOutcome(caseId);
+      if (!outcome) {
+        return sendError(
+          reply,
+          404,
+          "not_found",
+          "Nenhuma acusação foi registrada para este caso.",
+        );
+      }
+      return reply.send(outcome);
+    },
+  );
+
+  app.post<{ Params: { caseId: string } }>(
+    "/api/cases/:caseId/accusation",
+    async (request, reply) => {
+      const caseId = parseCaseId(request.params.caseId);
+      if (!caseId) {
+        return sendError(
+          reply,
+          400,
+          "invalid_request",
+          "O identificador do caso é inválido.",
+        );
+      }
+
+      const parsed = submitAccusationRequestSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return sendError(
+          reply,
+          400,
+          "invalid_request",
+          "Escolha um nome válido antes de acusar.",
+        );
+      }
+
+      const status = dependencies.cases.findStatus(caseId);
+      if (!status) return caseNotFound(reply);
+      if (status.status !== "ready") {
+        return sendError(
+          reply,
+          409,
+          "case_not_ready",
+          "O caso ainda não está pronto para uma acusação.",
+        );
+      }
+
+      try {
+        const outcome = dependencies.accusations.submit(caseId, parsed.data);
+        return reply.code(201).send(outcome);
+      } catch (error) {
+        if (error instanceof AccusationAlreadyExistsError) {
+          return sendError(
+            reply,
+            409,
+            "accusation_already_submitted",
+            "Este caso já recebeu sua única acusação.",
+          );
+        }
+        if (error instanceof InvalidAccusationSuspectError) {
+          return sendError(
+            reply,
+            400,
+            "invalid_request",
+            "O nome acusado não corresponde a um suspeito deste caso.",
+          );
+        }
+        throw error;
+      }
     },
   );
 

@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
-import type { CaseDocument, PublicCase } from "@fabrica/contracts";
-import { getCase, PublicApiError } from "../../api/cases";
+import type {
+  AccusationOutcome,
+  CaseDocument,
+  PublicCase,
+} from "@fabrica/contracts";
+import {
+  getAccusation,
+  getCase,
+  PublicApiError,
+  submitAccusation,
+} from "../../api/cases";
+import { AccusationDialog } from "./AccusationDialog";
 import { DocumentDialog } from "./DocumentDialog";
 import {
   crimeLabels,
@@ -19,7 +29,7 @@ type InvestigationView = "overview" | "suspects" | "documents";
 
 type LoadState =
   | { kind: "loading" }
-  | { kind: "loaded"; dossier: PublicCase }
+  | { kind: "loaded"; dossier: PublicCase; accusation: AccusationOutcome | null }
   | { kind: "error"; message: string };
 
 export function InvestigationPage({
@@ -29,13 +39,21 @@ export function InvestigationPage({
   const [loadState, setLoadState] = useState<LoadState>({ kind: "loading" });
   const [view, setView] = useState<InvestigationView>("overview");
   const [selectedDocument, setSelectedDocument] = useState<CaseDocument | null>(null);
+  const [accusationOpen, setAccusationOpen] = useState(false);
+  const [accusationSubmitting, setAccusationSubmitting] = useState(false);
+  const [accusationError, setAccusationError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
     setLoadState({ kind: "loading" });
-    void getCase(caseId, controller.signal)
-      .then((dossier) => setLoadState({ kind: "loaded", dossier }))
+    void Promise.all([
+      getCase(caseId, controller.signal),
+      getAccusation(caseId, controller.signal),
+    ])
+      .then(([dossier, accusation]) =>
+        setLoadState({ kind: "loaded", dossier, accusation }),
+      )
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         setLoadState({
@@ -79,6 +97,37 @@ export function InvestigationPage({
   }
 
   const dossier = loadState.dossier;
+
+  async function accuse(suspectName: string) {
+    setAccusationSubmitting(true);
+    setAccusationError(null);
+    try {
+      const accusation = await submitAccusation(caseId, { suspectName });
+      setLoadState({ kind: "loaded", dossier, accusation });
+      setAccusationOpen(false);
+    } catch (error) {
+      if (error instanceof PublicApiError && error.status === 409) {
+        try {
+          const accusation = await getAccusation(caseId);
+          if (accusation) {
+            setLoadState({ kind: "loaded", dossier, accusation });
+            setAccusationOpen(false);
+            return;
+          }
+        } catch {
+          // Keep the original conflict message if the recovery read fails.
+        }
+      }
+      setAccusationError(
+        error instanceof PublicApiError
+          ? error.message
+          : "Não foi possível registrar a acusação.",
+      );
+    } finally {
+      setAccusationSubmitting(false);
+    }
+  }
+
   return (
     <main className="investigation-page">
       <header className="dossier-header">
@@ -124,16 +173,27 @@ export function InvestigationPage({
         <Documents dossier={dossier} onOpen={setSelectedDocument} />
       )}
 
-      <section className="accusation-preview">
-        <div>
-          <span className="kicker">CONCLUSÃO DA INVESTIGAÇÃO</span>
-          <h2>Já sabe quem é o culpado?</h2>
-          <p>Revise todas as evidências. Quando acusar alguém, não haverá segunda chance.</p>
-        </div>
-        <button className="locked-button" type="button" disabled>
-          <span aria-hidden="true">◇</span> Fazer acusação · em breve
-        </button>
-      </section>
+      {loadState.accusation ? (
+        <AccusationOutcomeCard outcome={loadState.accusation} />
+      ) : (
+        <section className="accusation-preview">
+          <div>
+            <span className="kicker">CONCLUSÃO DA INVESTIGAÇÃO</span>
+            <h2>Já sabe quem é o culpado?</h2>
+            <p>Revise todas as evidências. Quando acusar alguém, não haverá segunda chance.</p>
+          </div>
+          <button
+            className="accusation-button"
+            type="button"
+            onClick={() => {
+              setAccusationError(null);
+              setAccusationOpen(true);
+            }}
+          >
+            <span aria-hidden="true">◇</span> Fazer acusação
+          </button>
+        </section>
+      )}
 
       {selectedDocument && (
         <DocumentDialog
@@ -141,7 +201,35 @@ export function InvestigationPage({
           onClose={() => setSelectedDocument(null)}
         />
       )}
+      {accusationOpen && (
+        <AccusationDialog
+          suspects={dossier.suspects}
+          submitting={accusationSubmitting}
+          errorMessage={accusationError}
+          onSubmit={(suspectName) => void accuse(suspectName)}
+          onClose={() => setAccusationOpen(false)}
+        />
+      )}
     </main>
+  );
+}
+
+function AccusationOutcomeCard({ outcome }: { outcome: AccusationOutcome }) {
+  return (
+    <section className={`accusation-outcome ${outcome.correct ? "correct" : "incorrect"}`}>
+      <span className="outcome-mark" aria-hidden="true">{outcome.correct ? "✓" : "×"}</span>
+      <div>
+        <span className="kicker">ACUSAÇÃO REGISTRADA</span>
+        <h2>{outcome.correct ? "Você identificou o culpado" : "Sua acusação estava incorreta"}</h2>
+        <p>
+          Você acusou <strong>{outcome.accusedName}</strong>. Esta foi a única
+          tentativa permitida para o caso.
+        </p>
+      </div>
+      <span className="outcome-time">
+        {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(outcome.submittedAt))}
+      </span>
+    </section>
   );
 }
 

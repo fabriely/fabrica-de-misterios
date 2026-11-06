@@ -24,7 +24,7 @@ A rota `/cases/:caseId` carrega o dossiê público persistido e oferece três á
 
 O caderno do investigador salva anotações no armazenamento local do navegador, separado por caso. Recarregar ou abrir diretamente a URL mantém o acesso ao dossiê enquanto ele existir no banco.
 
-A solução privada não é solicitada pelo frontend. A ação de acusação permanece bloqueada até a Task 10, quando a regra de tentativa única será implementada de ponta a ponta.
+A solução privada não é solicitada pelo frontend. A acusação apresenta os suspeitos por nome, exige confirmação e registra uma única tentativa. Depois do envio, a interface mostra apenas acerto ou erro e mantém o caso bloqueado mesmo após atualizar a página.
 
 Erros públicos da API aparecem no próprio formulário. A requisição e o polling são cancelados se a tela for desmontada, evitando atualizações tardias de estado.
 

@@ -25,3 +25,10 @@ export class CorruptStoredDataError extends Error {
     this.name = "CorruptStoredDataError";
   }
 }
+
+export class InvalidAccusationSuspectError extends Error {
+  constructor() {
+    super("O nome acusado não corresponde a um único suspeito do caso.");
+    this.name = "InvalidAccusationSuspectError";
+  }
+}

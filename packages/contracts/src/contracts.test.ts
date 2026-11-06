@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { submitAccusationRequestSchema } from "./accusation.js";
+import {
+  accusationOutcomeSchema,
+  submitAccusationRequestSchema,
+} from "./accusation.js";
 import { caseBriefingSchema } from "./briefing.js";
 import {
   caseBundleSchema,
@@ -110,6 +113,27 @@ describe("submitAccusationRequestSchema", () => {
 
     expect(
       submitAccusationRequestSchema.safeParse({ suspectName: "   " }).success,
+    ).toBe(false);
+  });
+
+  it("keeps the immediate outcome separate from the private reveal", () => {
+    expect(
+      accusationOutcomeSchema.parse({
+        caseId: CASE_ID,
+        correct: true,
+        accusedName: "Helena Prado",
+        submittedAt: "2026-11-06T19:00:00.000Z",
+      }),
+    ).not.toHaveProperty("culpritId");
+
+    expect(
+      accusationOutcomeSchema.safeParse({
+        caseId: CASE_ID,
+        correct: true,
+        accusedName: "Helena Prado",
+        submittedAt: "2026-11-06T19:00:00.000Z",
+        culpritId: "suspect_1",
+      }).success,
     ).toBe(false);
   });
 });

@@ -4,6 +4,7 @@ export {
   AccusationAlreadyExistsError,
   CorruptStoredDataError,
   InvalidCaseStateError,
+  InvalidAccusationSuspectError,
   RecordNotFoundError,
 } from "./errors.js";
 export { getSchemaVersion, runMigrations } from "./migrate.js";

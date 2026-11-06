@@ -13,7 +13,7 @@ Cada task deve terminar com seus critérios de aceite passando antes da próxima
 - [x] Task 07 — API pública do jogo
 - [x] Task 08 — Tela de criação
 - [x] Task 09 — Tela de investigação
-- [ ] Task 10 — Acusação única
+- [x] Task 10 — Acusação única
 - [ ] Task 11 — Revelação
 - [ ] Task 12 — Controle de custos e robustez
 - [ ] Task 13 — Testes finais e documentação
@@ -213,6 +213,30 @@ Critérios de aceite:
 - Casos inválidos ou inexistentes apresentam recuperação amigável.
 - A interface funciona em telas grandes e pequenas.
 
+## Task 10 — Acusação única
+
+Entregas:
+
+- Endpoint para acusar um suspeito pelo nome.
+- Normalização de espaços, caixa e acentos no servidor.
+- Validação de correspondência com exatamente um suspeito público.
+- Persistência transacional do resultado completo e privado.
+- Resposta imediata mínima, sem motivo, método ou identidade privada do culpado.
+- Restrição única no SQLite como proteção contra concorrência.
+- Consulta do resultado mínimo para preservar o bloqueio após recarregar.
+- Diálogo acessível com seleção e confirmação explícita.
+- Resultado visual de acerto ou erro sem liberar nova tentativa.
+
+Critérios de aceite:
+
+- Um nome válido registra exatamente uma acusação.
+- Variações de caixa e acentos não alteram a comparação.
+- Nome inexistente ou ambíguo é recusado.
+- A segunda tentativa retorna conflito, inclusive após recarregar a página.
+- Duas requisições simultâneas não conseguem criar duas acusações.
+- O frontend nunca recebe a solução completa nesta etapa.
+- Acerto e erro ficam persistidos e visíveis ao reabrir o caso.
+
 ## Próxima task
 
-Task 10 implementará a acusação única por nome, validação no servidor e bloqueio definitivo de uma segunda tentativa.
+Task 11 implementará a revelação completa após a acusação, incluindo culpado, motivo, método, cronologia e explicação das evidências.

@@ -37,6 +37,22 @@ Retorna o caso somente quando estiver pronto. Enquanto a geração estiver em an
 
 O campo `scene.imageUrl` do dossiê aponta para o arquivo local. A rota valida o UUID, confere o arquivo registrado no banco e impede acesso a caminhos arbitrários. As imagens são servidas com tipo seguro, `nosniff`, política de conteúdo restrita e cache imutável.
 
+## Acusação única
+
+`POST /api/cases/:caseId/accusation`
+
+```json
+{
+  "suspectName": "Helena Prado"
+}
+```
+
+O nome é comparado sem diferenças de maiúsculas ou acentos, mas precisa corresponder a um único suspeito público. A primeira tentativa é persistida; qualquer tentativa posterior retorna `409 accusation_already_submitted`.
+
+A resposta imediata contém apenas `caseId`, `correct`, `accusedName` e `submittedAt`. Culpado, motivo, método, cronologia e explicação continuam privados até a revelação.
+
+`GET /api/cases/:caseId/accusation` retorna esse resultado mínimo depois que a chance foi usada, permitindo manter o bloqueio após atualizar a página.
+
 ## Erros
 
 Erros públicos seguem o formato:
@@ -48,4 +64,4 @@ Erros públicos seguem o formato:
 }
 ```
 
-Os códigos atuais são `invalid_request`, `not_found`, `case_not_ready` e `internal_error`. Detalhes internos dos provedores não são enviados ao cliente nem registrados pela fila de geração.
+Os códigos atuais são `invalid_request`, `not_found`, `case_not_ready`, `accusation_already_submitted` e `internal_error`. Detalhes internos dos provedores não são enviados ao cliente nem registrados pela fila de geração.

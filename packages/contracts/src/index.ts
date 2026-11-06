@@ -67,11 +67,13 @@ export type {
 
 export {
   accusationRecordSchema,
+  accusationOutcomeSchema,
   accusationResultSchema,
   submitAccusationRequestSchema,
 } from "./accusation.js";
 export type {
   AccusationRecord,
+  AccusationOutcome,
   AccusationResult,
   SubmitAccusationRequest,
 } from "./accusation.js";

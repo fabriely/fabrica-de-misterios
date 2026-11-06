@@ -1,13 +1,17 @@
 import {
   API_PATHS,
   apiErrorResponseSchema,
+  accusationOutcomeSchema,
   caseStatusResponseSchema,
   createCaseRequestSchema,
   publicCaseSchema,
+  submitAccusationRequestSchema,
 } from "@fabrica/contracts";
 import type {
   CaseStatusResponse,
+  AccusationOutcome,
   CreateCaseRequest,
+  SubmitAccusationRequest,
   PublicCase,
 } from "@fabrica/contracts";
 
@@ -69,6 +73,34 @@ export async function getCase(
   });
   const body = await parseApiBody(response);
   return publicCaseSchema.parse(body);
+}
+
+export async function getAccusation(
+  caseId: string,
+  signal?: AbortSignal,
+): Promise<AccusationOutcome | null> {
+  const response = await fetch(API_PATHS.accusation(caseId), {
+    signal: signal ?? null,
+  });
+  if (response.status === 404) return null;
+  const body = await parseApiBody(response);
+  return accusationOutcomeSchema.parse(body);
+}
+
+export async function submitAccusation(
+  caseId: string,
+  request: SubmitAccusationRequest,
+  signal?: AbortSignal,
+): Promise<AccusationOutcome> {
+  const payload = submitAccusationRequestSchema.parse(request);
+  const response = await fetch(API_PATHS.accusation(caseId), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    signal: signal ?? null,
+  });
+  const body = await parseApiBody(response);
+  return accusationOutcomeSchema.parse(body);
 }
 
 async function parseStatusResponse(response: Response) {

@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createCase, getCase, PublicApiError, waitForCase } from "./cases";
+import {
+  createCase,
+  getAccusation,
+  getCase,
+  PublicApiError,
+  submitAccusation,
+  waitForCase,
+} from "./cases";
 
 const CASE_ID = "d819d84d-35d4-4e70-812a-47b8126f724b";
 
@@ -95,6 +102,45 @@ describe("cases API client", () => {
       { signal: null },
     );
     expect(JSON.stringify(result)).not.toContain("culpritId");
+  });
+
+  it("submits and reloads only the minimal accusation outcome", async () => {
+    const outcome = {
+      caseId: CASE_ID,
+      correct: false,
+      accusedName: "Otávio Leme",
+      submittedAt: "2026-11-06T19:00:00.000Z",
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(201, outcome))
+      .mockResolvedValueOnce(jsonResponse(200, outcome));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      submitAccusation(CASE_ID, { suspectName: "Otávio Leme" }),
+    ).resolves.toEqual(outcome);
+    await expect(getAccusation(CASE_ID)).resolves.toEqual(outcome);
+
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      body: JSON.stringify({ suspectName: "Otávio Leme" }),
+    });
+    expect(JSON.stringify(outcome)).not.toContain("culpritId");
+  });
+
+  it("treats a missing accusation as an unused chance", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(404, {
+          code: "not_found",
+          message: "Nenhuma acusação foi registrada para este caso.",
+        }),
+      ),
+    );
+
+    await expect(getAccusation(CASE_ID)).resolves.toBeNull();
   });
 });
 
