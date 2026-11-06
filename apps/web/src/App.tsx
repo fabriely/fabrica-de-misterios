@@ -31,10 +31,12 @@ export function App() {
     }
 
     const handleNavigation = () => setRoute(readRoute());
+    const healthInterval = window.setInterval(() => void checkApi(), 10_000);
     window.addEventListener("popstate", handleNavigation);
     void checkApi();
     return () => {
       controller.abort();
+      window.clearInterval(healthInterval);
       window.removeEventListener("popstate", handleNavigation);
     };
   }, []);

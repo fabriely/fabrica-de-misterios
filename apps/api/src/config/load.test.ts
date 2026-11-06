@@ -22,7 +22,11 @@ describe("loadConfig", () => {
 
     const config = await loadConfig({ cwd: directory });
 
-    expect(config.server).toEqual({ host: "127.0.0.1", port: 3000 });
+    expect(config.server).toEqual({
+      host: "127.0.0.1",
+      port: 3000,
+      body_limit_kb: 32,
+    });
     expect(config.openai.text_model).toBe("gpt-6-luna");
     expect(config.images).toMatchObject({
       directory: "./data/images",
@@ -117,6 +121,7 @@ function validConfig() {
 [server]
 host = "127.0.0.1"
 port = 3000
+body_limit_kb = 32
 
 [database]
 path = "./data/database.sqlite"
@@ -145,5 +150,6 @@ suspect_count = 3
 document_count = 4
 image_count = 1
 max_case_generations_per_hour = 5
+max_concurrent_generations = 1
 `;
 }

@@ -6,6 +6,7 @@ export const apiErrorCodeSchema = z.enum([
   "case_not_ready",
   "accusation_already_submitted",
   "accusation_required",
+  "generation_limit_reached",
   "internal_error",
 ]);
 

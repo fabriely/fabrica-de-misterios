@@ -47,6 +47,8 @@ As rotas para criar e consultar casos estão documentadas em [`docs/api.md`](doc
 
 O formulário e o acompanhamento visual da geração estão descritos em [`docs/frontend.md`](docs/frontend.md).
 
+Limites de custo, fila e recuperação após reinício estão descritos em [`docs/operations.md`](docs/operations.md).
+
 ## Segurança da configuração
 
 - Nunca coloque a chave em `config.example.toml`, arquivos do frontend ou commits.

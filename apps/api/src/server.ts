@@ -48,13 +48,29 @@ try {
     imageGeneration,
   );
   const generationQueue = new CaseGenerationQueue(workflow, (caseId) => {
+    const status = cases.findStatus(caseId);
+    if (status && status.status !== "ready" && status.status !== "failed") {
+      try {
+        cases.fail(caseId, "Não foi possível concluir a geração do caso.");
+      } catch {
+        // The queue must continue even if another transition already won.
+      }
+    }
     console.error(`[generation] O caso ${caseId} terminou com falha.`);
-  });
+  }, config.generation.max_concurrent_generations);
+  const recoveredCases = cases.recoverAfterRestart();
+  for (const recovered of recoveredCases) {
+    generationQueue.enqueue(recovered.caseId, recovered.briefing);
+  }
   const app = buildApp({
+    bodyLimitBytes: config.server.body_limit_kb * 1_024,
     game: {
       cases,
       accusations,
       generationQueue,
+      generationLimits: {
+        maxCasesPerHour: config.generation.max_case_generations_per_hour,
+      },
       images: config.images,
       baseDirectory: projectRoot,
     },
@@ -72,6 +88,9 @@ try {
         filename: storage.filename,
         schemaVersion: storage.schemaVersion,
       },
+      recovery: {
+        queuedCases: recoveredCases.length,
+      },
     },
     "Configuração carregada",
   );
@@ -88,7 +107,10 @@ try {
   process.once("SIGINT", () => void shutdown("SIGINT"));
   process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
-  await app.listen(config.server);
+  await app.listen({
+    host: config.server.host,
+    port: config.server.port,
+  });
 } catch (error) {
   if (error instanceof ConfigError) {
     console.error(`[config] ${error.message}`);

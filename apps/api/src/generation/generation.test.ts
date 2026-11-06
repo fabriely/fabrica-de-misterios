@@ -249,5 +249,6 @@ function generationConfig(): AppConfig["generation"] {
     document_count: 4,
     image_count: 1,
     max_case_generations_per_hour: 5,
+    max_concurrent_generations: 1,
   };
 }

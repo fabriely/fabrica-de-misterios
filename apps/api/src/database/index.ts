@@ -14,6 +14,7 @@ export type {
   CreatePendingCaseInput,
   GenerationMetadata,
   ImageMetadata,
+  QueuedCase,
   StoredGenerationDraft,
 } from "./case-repository.js";
 export type { Migration } from "./migrate.js";

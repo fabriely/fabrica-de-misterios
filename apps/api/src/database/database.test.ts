@@ -151,6 +151,33 @@ describe("CaseRepository", () => {
 
     expect(repository.countCreatedSince("2026-11-06T13:00:00.000Z")).toBe(1);
   });
+
+  it("recovers queued work and safely fails interrupted generations", async () => {
+    const { database } = await createFileDatabase();
+    const repository = new CaseRepository(database);
+    const draft = validGenerationOutput();
+    const interruptedId = "a9eb6fac-f14b-4190-a637-aae9c36b8444";
+    repository.createPending({
+      id: CASE_ID,
+      briefing: draft.publicCase.briefing,
+      createdAt: CREATED_AT,
+    });
+    repository.createPending({
+      id: interruptedId,
+      briefing: draft.publicCase.briefing,
+      createdAt: "2026-11-06T12:01:00.000Z",
+    });
+    repository.markGeneratingCase(interruptedId);
+
+    expect(repository.recoverAfterRestart()).toEqual([
+      { caseId: CASE_ID, briefing: draft.publicCase.briefing },
+    ]);
+    expect(repository.findStatus(interruptedId)).toMatchObject({
+      status: "failed",
+      errorMessage: expect.stringContaining("interrompida por um reinício"),
+    });
+    expect(repository.findStatus(CASE_ID)?.status).toBe("queued");
+  });
 });
 
 describe("AccusationRepository", () => {

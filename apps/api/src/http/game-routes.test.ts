@@ -117,6 +117,33 @@ describe("public game API", () => {
     expect(context.cases.countCreatedSince("2000-01-01T00:00:00.000Z")).toBe(0);
   });
 
+  it("enforces the persistent hourly generation budget", async () => {
+    const now = new Date("2026-11-06T20:00:00.000Z");
+    const context = await createGameContext({
+      maxCasesPerHour: 1,
+      now: () => now,
+    });
+
+    const first = await context.app.inject({
+      method: "POST",
+      url: API_PATHS.cases,
+      payload: validCreateCaseRequest(),
+    });
+    const limited = await context.app.inject({
+      method: "POST",
+      url: API_PATHS.cases,
+      payload: validCreateCaseRequest(),
+    });
+
+    expect(first.statusCode).toBe(202);
+    expect(limited.statusCode).toBe(429);
+    expect(limited.headers["retry-after"]).toBe("3600");
+    expect(limited.json()).toMatchObject({
+      code: "generation_limit_reached",
+    });
+    await context.queue.drain();
+  });
+
   it("distinguishes invalid, missing and not-yet-ready cases", async () => {
     const context = await createGameContext();
     context.cases.createPending({
@@ -284,7 +311,9 @@ describe("public game API", () => {
   });
 });
 
-async function createGameContext() {
+async function createGameContext(
+  options: { maxCasesPerHour?: number; now?: () => Date } = {},
+) {
   const directory = await mkdtemp(path.join(tmpdir(), "fabrica-api-"));
   directories.push(directory);
   const opened = openDatabase({ filename: ":memory:" });
@@ -314,6 +343,10 @@ async function createGameContext() {
       cases,
       accusations,
       generationQueue: queue,
+      generationLimits: {
+        maxCasesPerHour: options.maxCasesPerHour ?? 5,
+        ...(options.now ? { now: options.now } : {}),
+      },
       images,
       baseDirectory: directory,
     },
@@ -353,5 +386,6 @@ function generationConfig(): AppConfig["generation"] {
     document_count: 4,
     image_count: 1,
     max_case_generations_per_hour: 5,
+    max_concurrent_generations: 1,
   };
 }

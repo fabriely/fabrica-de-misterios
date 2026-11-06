@@ -40,6 +40,7 @@ export function CreateCasePage({
 }: CreateCasePageProps) {
   const [form, setForm] = useState<FormState>(initialForm);
   const [status, setStatus] = useState<CaseStatusResponse | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const isGenerating = status !== null && !isTerminal(status.status);
@@ -48,9 +49,10 @@ export function CreateCasePage({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (controllerRef.current) return;
     setErrorMessage(null);
+    setSubmitting(true);
     const controller = new AbortController();
-    controllerRef.current?.abort();
     controllerRef.current = controller;
 
     try {
@@ -71,6 +73,11 @@ export function CreateCasePage({
           ? error.message
           : "Não foi possível falar com a API. Verifique se o servidor está ligado.",
       );
+    } finally {
+      if (controllerRef.current === controller) {
+        controllerRef.current = null;
+      }
+      setSubmitting(false);
     }
   }
 
@@ -204,9 +211,17 @@ export function CreateCasePage({
             A geração pode levar alguns instantes. Você acompanhará cada etapa
             por aqui.
           </p>
-          <button className="primary-button" type="submit" disabled={!apiAvailable}>
+          <button
+            className="primary-button"
+            type="submit"
+            disabled={!apiAvailable || submitting}
+          >
             <span aria-hidden="true">✦</span>
-            {apiAvailable ? "Fabricar meu mistério" : "Aguardando a API"}
+            {!apiAvailable
+              ? "Aguardando a API"
+              : submitting
+                ? "Abrindo o arquivo..."
+                : "Fabricar meu mistério"}
           </button>
         </div>
       </form>

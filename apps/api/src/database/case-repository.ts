@@ -89,6 +89,11 @@ export type ImageMetadata = {
   };
 };
 
+export type QueuedCase = {
+  caseId: string;
+  briefing: CaseBriefing;
+};
+
 export class CaseRepository {
   constructor(private readonly database: Database.Database) {}
 
@@ -346,6 +351,37 @@ export class CaseRepository {
       .get(isoTimestamp) as { total: number };
 
     return row.total;
+  }
+
+  recoverAfterRestart(): QueuedCase[] {
+    return this.database.transaction(() => {
+      const interruptedAt = new Date().toISOString();
+      this.database
+        .prepare(
+          `UPDATE cases SET
+            status = 'failed',
+            error_message = 'A geração foi interrompida por um reinício. Crie um novo caso para tentar novamente.',
+            updated_at = ?
+          WHERE status IN ('generating_case', 'generating_image')`,
+        )
+        .run(interruptedAt);
+
+      const rows = this.database
+        .prepare(
+          "SELECT id, briefing_json FROM cases WHERE status = 'queued' ORDER BY created_at",
+        )
+        .all() as Array<{ id: string; briefing_json: string }>;
+
+      return rows.map((row) => ({
+        caseId: caseIdSchema.parse(row.id),
+        briefing: parseStoredJson(
+          row.briefing_json,
+          caseBriefingSchema,
+          "briefing enfileirado",
+          row.id,
+        ),
+      }));
+    })();
   }
 
   private transition(

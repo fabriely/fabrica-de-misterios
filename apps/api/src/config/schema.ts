@@ -8,6 +8,7 @@ export const configSchema = z
       .object({
         host: trimmedString,
         port: z.number().int().min(1).max(65_535),
+        body_limit_kb: z.number().int().min(1).max(1_024),
       })
       .strict(),
     database: z
@@ -58,6 +59,7 @@ export const configSchema = z
         document_count: z.number().int().min(1).max(12),
         image_count: z.literal(1),
         max_case_generations_per_hour: z.number().int().min(1).max(100),
+        max_concurrent_generations: z.number().int().min(1).max(10),
       })
       .strict(),
   })

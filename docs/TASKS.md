@@ -15,7 +15,7 @@ Cada task deve terminar com seus critérios de aceite passando antes da próxima
 - [x] Task 09 — Tela de investigação
 - [x] Task 10 — Acusação única
 - [x] Task 11 — Revelação
-- [ ] Task 12 — Controle de custos e robustez
+- [x] Task 12 — Controle de custos e robustez
 - [ ] Task 13 — Testes finais e documentação
 
 ## Task 01 — Fundação do projeto
@@ -260,6 +260,30 @@ Critérios de aceite:
 - Atualizar a página mantém a possibilidade de abrir a solução.
 - A tela funciona em desktop e dispositivos móveis.
 
+## Task 12 — Controle de custos e robustez
+
+Entregas:
+
+- Limite persistido de novos casos por janela de uma hora.
+- Cabeçalho `Retry-After` e erro público `429` ao exceder o orçamento.
+- Fila com concorrência configurável e isolamento de falhas.
+- Recuperação de casos enfileirados após reinício.
+- Falha segura de chamadas externas interrompidas, sem repetição automática.
+- Limite configurável para corpos HTTP.
+- Tratamento global de JSON inválido, rotas inexistentes e erros inesperados.
+- Cabeçalhos básicos de segurança nas respostas.
+- Bloqueio de duplo envio e nova consulta periódica de saúde no frontend.
+
+Critérios de aceite:
+
+- O caso que excede o limite horário não é persistido nem enviado ao provedor.
+- A fila nunca ultrapassa a concorrência configurada.
+- Uma falha não impede que o próximo item da fila seja processado.
+- Reiniciar a API recupera `queued` e não repete etapas externas interrompidas.
+- Erros inesperados não expõem mensagens internas ao cliente.
+- Corpos excessivos e JSON inválido são recusados de forma consistente.
+- O modo mock continua sendo o padrão sem custo.
+
 ## Próxima task
 
-Task 12 implementará limites de geração, proteção de custos, tratamento global de erros e melhorias de robustez operacional.
+Task 13 fará a revisão final do MVP, testes de ponta a ponta, documentação de uso real da OpenAI e checklist de entrega.

@@ -22,6 +22,10 @@ import {
 export type GameRoutesDependencies = {
   cases: CaseRepository;
   generationQueue: CaseGenerationQueue;
+  generationLimits: {
+    maxCasesPerHour: number;
+    now?: () => Date;
+  };
   accusations: AccusationService;
   images: Pick<AppConfig["images"], "directory" | "public_path">;
   baseDirectory?: string;
@@ -51,9 +55,28 @@ export function registerGameRoutes(
       );
     }
 
+    const now = dependencies.generationLimits.now?.() ?? new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1_000).toISOString();
+    if (
+      dependencies.cases.countCreatedSince(oneHourAgo) >=
+      dependencies.generationLimits.maxCasesPerHour
+    ) {
+      return reply
+        .header("Retry-After", "3600")
+        .code(429)
+        .send(
+          apiErrorResponseSchema.parse({
+            code: "generation_limit_reached",
+            message:
+              "O limite de novos casos desta hora foi atingido. Tente novamente mais tarde.",
+          }),
+        );
+    }
+
     const status = dependencies.cases.createPending({
       id: randomUUID(),
       briefing: parsed.data.briefing,
+      createdAt: now.toISOString(),
     });
     dependencies.generationQueue.enqueue(status.caseId, parsed.data.briefing);
 

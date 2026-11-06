@@ -72,4 +72,4 @@ Erros públicos seguem o formato:
 }
 ```
 
-Os códigos atuais são `invalid_request`, `not_found`, `case_not_ready`, `accusation_already_submitted`, `accusation_required` e `internal_error`. Detalhes internos dos provedores não são enviados ao cliente nem registrados pela fila de geração.
+Os códigos atuais são `invalid_request`, `not_found`, `case_not_ready`, `accusation_already_submitted`, `accusation_required`, `generation_limit_reached` e `internal_error`. Detalhes internos dos provedores não são enviados ao cliente nem registrados pela fila de geração.
