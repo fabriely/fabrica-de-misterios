@@ -42,7 +42,7 @@ afterEach(async () => {
 });
 
 describe("public game API", () => {
-  it("creates, generates and exposes a complete public case", async () => {
+  it("completes the MVP journey from creation to the final reveal", async () => {
     const context = await createGameContext();
 
     const creation = await context.app.inject({
@@ -93,6 +93,40 @@ describe("public game API", () => {
     expect(image.headers["content-type"]).toContain("image/svg+xml");
     expect(image.headers["cache-control"]).toContain("immutable");
     expect(image.body).toContain("Cena do caso");
+
+    const accusation = await context.app.inject({
+      method: "POST",
+      url: API_PATHS.accusation(caseId),
+      payload: { suspectName: "Helena Prado" },
+    });
+    expect(accusation.statusCode).toBe(201);
+    expect(accusation.json()).toMatchObject({
+      caseId,
+      correct: true,
+      accusedName: "Helena Prado",
+    });
+    expect(accusation.body).not.toContain("culpritId");
+    expect(accusation.body).not.toContain("motive");
+
+    const reveal = await context.app.inject({
+      method: "GET",
+      url: API_PATHS.reveal(caseId),
+    });
+    expect(reveal.statusCode).toBe(200);
+    expect(reveal.json()).toMatchObject({
+      caseId,
+      correct: true,
+      culpritId: "suspect_1",
+      culpritName: "Helena Prado",
+      decisiveEvidenceIds: ["document_1", "visual_clue_1"],
+    });
+
+    const secondAttempt = await context.app.inject({
+      method: "POST",
+      url: API_PATHS.accusation(caseId),
+      payload: { suspectName: "Otávio Leme" },
+    });
+    expect(secondAttempt.statusCode).toBe(409);
   });
 
   it("validates creation requests without creating a case", async () => {

@@ -20,4 +20,4 @@ Se a geração externa falhar e `images.fallback_enabled = true`, um SVG neutro 
 
 O exemplo usa qualidade `low`, uma imagem e compressão WebP. O identificador de segurança enviado ao provedor é um hash do UUID do caso; briefing, chave e erros do provedor não são usados nesse identificador nem expostos na resposta pública.
 
-Os testes automatizados simulam a Image API e nunca consomem créditos. A rota HTTP que criará o caso e servirá os arquivos será adicionada na Task 07.
+Os testes automatizados simulam a Image API e nunca consomem créditos. A imagem pronta é servida pela rota pública configurada e só pode ser acessada quando pertence a um caso persistido.

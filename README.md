@@ -1,8 +1,8 @@
 # Fábrica de Mistérios
 
-Aplicação para criar e investigar casos fictícios gerados por IA.
+Aplicação para criar e investigar casos fictícios gerados por IA. O jogador escolhe o briefing, examina uma cena, suspeitos e documentos, e tem uma única chance de acusar alguém antes da revelação completa.
 
-O projeto está sendo reconstruído como um workspace TypeScript com uma aplicação React, uma API Node.js e contratos compartilhados.
+O MVP é um workspace TypeScript com uma aplicação React, uma API Node.js, SQLite local e contratos compartilhados. Ele funciona integralmente com o provedor mock sem custo e pode usar a OpenAI para gerar o texto e uma imagem por caso.
 
 ## Requisitos
 
@@ -31,11 +31,10 @@ npm run dev
 ## Verificações
 
 ```bash
-npm run lint
-npm run typecheck
-npm test
-npm run build
+npm run check
 ```
+
+Esse comando executa lint, checagem de tipos, testes automatizados e build. Nenhuma verificação automatizada chama a OpenAI.
 
 O andamento do MVP está registrado em [`docs/TASKS.md`](docs/TASKS.md).
 
@@ -48,6 +47,10 @@ As rotas para criar e consultar casos estão documentadas em [`docs/api.md`](doc
 O formulário e o acompanhamento visual da geração estão descritos em [`docs/frontend.md`](docs/frontend.md).
 
 Limites de custo, fila e recuperação após reinício estão descritos em [`docs/operations.md`](docs/operations.md).
+
+O roteiro de testes está em [`docs/testing.md`](docs/testing.md), e o primeiro teste real com a OpenAI está em [`docs/openai-setup.md`](docs/openai-setup.md).
+
+O estado final e os requisitos antes de uma implantação pública estão em [`docs/release-checklist.md`](docs/release-checklist.md).
 
 ## Segurança da configuração
 
@@ -63,3 +66,11 @@ O MVP usa SQLite no caminho definido por `database.path`. Na primeira execução
 ## Geração sem gastar créditos
 
 `config.example.toml` usa `generation.provider = "mock"`. Nesse modo, a aplicação gera um caso determinístico localmente e aceita `openai.api_key = ""`. Para um teste real, altere o provedor para `openai` e preencha a chave apenas no `config.toml` ignorado pelo Git.
+
+## Escopo do MVP
+
+- Um caso por criação, com quantidades configuráveis de suspeitos e documentos.
+- Exatamente uma imagem de cena.
+- Uma acusação por nome e sem segunda tentativa.
+- Solução privada até a acusação ser persistida.
+- Fila local e armazenamento local; não há contas de usuário nem publicação multiusuário.

@@ -32,3 +32,5 @@ O provedor usa:
 - uma única chamada textual por caso.
 
 O mock deve ser usado durante desenvolvimento comum. Ative `provider = "openai"` apenas para testes reais e preencha a chave somente no `config.toml` local.
+
+O procedimento completo para um primeiro teste real com limites conservadores está em [`openai-setup.md`](openai-setup.md).

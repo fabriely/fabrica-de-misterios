@@ -16,7 +16,7 @@ Cada task deve terminar com seus critérios de aceite passando antes da próxima
 - [x] Task 10 — Acusação única
 - [x] Task 11 — Revelação
 - [x] Task 12 — Controle de custos e robustez
-- [ ] Task 13 — Testes finais e documentação
+- [x] Task 13 — Testes finais e documentação
 
 ## Task 01 — Fundação do projeto
 
@@ -284,6 +284,28 @@ Critérios de aceite:
 - Corpos excessivos e JSON inválido são recusados de forma consistente.
 - O modo mock continua sendo o padrão sem custo.
 
-## Próxima task
+## Task 13 — Testes finais e documentação
 
-Task 13 fará a revisão final do MVP, testes de ponta a ponta, documentação de uso real da OpenAI e checklist de entrega.
+Entregas:
+
+- Teste automatizado da jornada completa, da criação à revelação.
+- Comando único `npm run check` para validar a entrega.
+- Auditoria de configuração local e separação da solução privada.
+- Roteiro de teste manual sem custo.
+- Guia para um único teste real com a OpenAI e limites conservadores.
+- Checklist do MVP e das exigências adicionais antes de publicação.
+- README final com escopo, execução e mapa da documentação.
+
+Critérios de aceite:
+
+- A jornada completa passa usando apenas provedores mock.
+- Uma segunda acusação continua bloqueada no teste ponta a ponta.
+- Nenhum teste automatizado chama ou consome créditos da OpenAI.
+- `config.toml` permanece ignorado e nenhuma chave real é versionada.
+- `npm run check` passa integralmente.
+- O uso real da OpenAI pode ser ativado sem colocar a chave no frontend.
+- Limitações do MVP local e pendências para produção estão explícitas.
+
+## Estado do plano
+
+As 13 tasks do MVP local estão concluídas. O próximo ciclo pode priorizar publicação segura, autenticação, histórico de casos ou melhorias na qualidade da geração.
