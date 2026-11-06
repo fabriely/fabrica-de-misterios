@@ -39,6 +39,8 @@ npm run build
 
 O andamento do MVP está registrado em [`docs/TASKS.md`](docs/TASKS.md).
 
+A geração textual e a troca entre provedor mock e OpenAI estão descritas em [`docs/generation.md`](docs/generation.md).
+
 ## Segurança da configuração
 
 - Nunca coloque a chave em `config.example.toml`, arquivos do frontend ou commits.
@@ -49,3 +51,7 @@ O andamento do MVP está registrado em [`docs/TASKS.md`](docs/TASKS.md).
 ## Persistência local
 
 O MVP usa SQLite no caminho definido por `database.path`. Na primeira execução, a API cria o diretório, aplica migrações versionadas e habilita chaves estrangeiras e WAL. Arquivos `*.sqlite` e imagens geradas permanecem fora do Git.
+
+## Geração sem gastar créditos
+
+`config.example.toml` usa `generation.provider = "mock"`. Nesse modo, a aplicação gera um caso determinístico localmente e aceita `openai.api_key = ""`. Para um teste real, altere o provedor para `openai` e preencha a chave apenas no `config.toml` ignorado pelo Git.

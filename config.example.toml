@@ -15,8 +15,10 @@ reasoning_effort = "low"
 image_quality = "low"
 timeout_seconds = 120
 max_retries = 1
+max_output_tokens = 8000
 
 [generation]
+provider = "mock"
 suspect_count = 3
 document_count = 4
 image_count = 1

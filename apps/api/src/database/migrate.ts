@@ -1,5 +1,6 @@
 import type Database from "better-sqlite3";
 import { initialMigration } from "./migrations/001-initial.js";
+import { generationMetadataMigration } from "./migrations/002-generation-metadata.js";
 
 export type Migration = {
   version: number;
@@ -7,7 +8,10 @@ export type Migration = {
   sql: string;
 };
 
-const migrations: Migration[] = [initialMigration];
+const migrations: Migration[] = [
+  initialMigration,
+  generationMetadataMigration,
+];
 
 export function runMigrations(database: Database.Database): number {
   database.exec(`

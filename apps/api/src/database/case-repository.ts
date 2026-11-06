@@ -1,4 +1,5 @@
 import type Database from "better-sqlite3";
+import { z } from "zod";
 import {
   caseBriefingSchema,
   caseBundleSchema,
@@ -38,6 +39,9 @@ type CaseRow = {
   error_message: string | null;
   text_model: string | null;
   prompt_version: string | null;
+  generation_provider: string | null;
+  openai_response_id: string | null;
+  usage_json: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -49,8 +53,16 @@ export type CreatePendingCaseInput = {
 };
 
 export type GenerationMetadata = {
+  provider: "mock" | "openai";
   textModel: string;
+  responseId: string | null;
   promptVersion: string;
+  usage: {
+    inputTokens: number | null;
+    outputTokens: number | null;
+    reasoningTokens: number | null;
+    totalTokens: number | null;
+  };
 };
 
 export type StoredGenerationDraft = {
@@ -113,6 +125,9 @@ export class CaseRepository {
           image_prompt = ?,
           text_model = ?,
           prompt_version = ?,
+          generation_provider = ?,
+          openai_response_id = ?,
+          usage_json = ?,
           error_message = NULL,
           updated_at = ?
         WHERE id = ? AND status = 'generating_case'`,
@@ -123,6 +138,9 @@ export class CaseRepository {
         output.imagePrompt,
         metadata.textModel,
         metadata.promptVersion,
+        metadata.provider,
+        metadata.responseId,
+        JSON.stringify(metadata.usage),
         updatedAt,
         caseId,
       );
@@ -219,6 +237,36 @@ export class CaseRepository {
     };
   }
 
+  findGenerationMetadata(caseId: string): GenerationMetadata | null {
+    const row = this.findRow(caseId);
+    if (
+      !row?.generation_provider ||
+      !row.text_model ||
+      !row.prompt_version ||
+      !row.usage_json
+    ) {
+      return null;
+    }
+
+    const provider = z.enum(["mock", "openai"]).parse(
+      row.generation_provider,
+    );
+    const usage = parseStoredJson(
+      row.usage_json,
+      generationUsageSchema,
+      "uso da geração",
+      caseId,
+    );
+
+    return {
+      provider,
+      textModel: row.text_model,
+      responseId: row.openai_response_id,
+      promptVersion: row.prompt_version,
+      usage,
+    };
+  }
+
   findBundleForAccusation(caseId: string): CaseBundle | null {
     const publicCase = this.findPublicCase(caseId);
     if (!publicCase) return null;
@@ -287,3 +335,13 @@ export class CaseRepository {
     throw new InvalidCaseStateError(caseId, operation);
   }
 }
+
+const nullableTokenCountSchema = z.number().int().nonnegative().nullable();
+const generationUsageSchema = z
+  .object({
+    inputTokens: nullableTokenCountSchema,
+    outputTokens: nullableTokenCountSchema,
+    reasoningTokens: nullableTokenCountSchema,
+    totalTokens: nullableTokenCountSchema,
+  })
+  .strict();

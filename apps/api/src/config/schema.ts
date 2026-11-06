@@ -17,23 +17,26 @@ export const configSchema = z
       .strict(),
     openai: z
       .object({
-        api_key: z
-          .string()
-          .trim()
-          .min(20)
-          .refine((value) => value.startsWith("sk-"), {
-            message: "deve começar com sk-",
-          }),
+        api_key: z.string().trim().max(300),
         text_model: trimmedString,
         image_model: trimmedString,
-        reasoning_effort: z.enum(["none", "low", "medium", "high"]),
+        reasoning_effort: z.enum([
+          "none",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ]),
         image_quality: z.enum(["low", "medium", "high", "auto"]),
         timeout_seconds: z.number().int().min(5).max(600),
         max_retries: z.number().int().min(0).max(3),
+        max_output_tokens: z.number().int().min(1_000).max(30_000),
       })
       .strict(),
     generation: z
       .object({
+        provider: z.enum(["mock", "openai"]),
         suspect_count: z.number().int().min(2).max(8),
         document_count: z.number().int().min(1).max(12),
         image_count: z.literal(1),
@@ -41,7 +44,20 @@ export const configSchema = z
       })
       .strict(),
   })
-  .strict();
+  .strict()
+  .superRefine((config, context) => {
+    if (
+      config.generation.provider === "openai" &&
+      (config.openai.api_key.length < 20 ||
+        !config.openai.api_key.startsWith("sk-"))
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "é obrigatória e deve começar com sk- no provedor openai",
+        path: ["openai", "api_key"],
+      });
+    }
+  });
 
 export type AppConfig = z.infer<typeof configSchema>;
 
@@ -66,6 +82,7 @@ export function createSafeConfigSummary(config: AppConfig): SafeConfigSummary {
       image_quality: config.openai.image_quality,
       timeout_seconds: config.openai.timeout_seconds,
       max_retries: config.openai.max_retries,
+      max_output_tokens: config.openai.max_output_tokens,
     },
     generation: { ...config.generation },
   };

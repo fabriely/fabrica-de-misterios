@@ -42,7 +42,8 @@ describe("loadConfig", () => {
       directory,
       validConfig()
         .replace("sk-proj-chave-local-de-teste-123456", secret)
-        .replace("port = 3000", "port = 70000"),
+        .replace("port = 3000", "port = 70000")
+        .replace('provider = "mock"', 'provider = "openai"'),
     );
 
     const error = await loadConfig({ cwd: directory }).catch(
@@ -65,6 +66,34 @@ describe("loadConfig", () => {
 
     expect(summary.openai.api_key).toBe("[REDACTED]");
     expect(JSON.stringify(summary)).not.toContain(secret);
+  });
+
+  it("requires an API key only when the OpenAI provider is active", async () => {
+    const directory = await createTemporaryDirectory();
+    await writeConfig(
+      directory,
+      validConfig()
+        .replace(
+          'api_key = "sk-proj-chave-local-de-teste-123456"',
+          'api_key = ""',
+        )
+        .replace('provider = "mock"', 'provider = "openai"'),
+    );
+
+    await expect(loadConfig({ cwd: directory })).rejects.toThrow(
+      /openai\.api_key/,
+    );
+
+    await writeConfig(
+      directory,
+      validConfig().replace(
+        'api_key = "sk-proj-chave-local-de-teste-123456"',
+        'api_key = ""',
+      ),
+    );
+    await expect(loadConfig({ cwd: directory })).resolves.toMatchObject({
+      generation: { provider: "mock" },
+    });
   });
 });
 
@@ -95,8 +124,10 @@ reasoning_effort = "low"
 image_quality = "low"
 timeout_seconds = 120
 max_retries = 1
+max_output_tokens = 8000
 
 [generation]
+provider = "mock"
 suspect_count = 3
 document_count = 4
 image_count = 1

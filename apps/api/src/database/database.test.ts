@@ -35,8 +35,8 @@ describe("database migrations", () => {
   it("creates the initial schema exactly once", async () => {
     const { database } = await createFileDatabase();
 
-    expect(getSchemaVersion(database)).toBe(1);
-    expect(runMigrations(database)).toBe(1);
+    expect(getSchemaVersion(database)).toBe(2);
+    expect(runMigrations(database)).toBe(2);
 
     const migrations = database
       .prepare("SELECT version, name FROM schema_migrations")
@@ -49,6 +49,7 @@ describe("database migrations", () => {
 
     expect(migrations).toEqual([
       { version: 1, name: "initial_cases_and_accusations" },
+      { version: 2, name: "generation_metadata" },
     ]);
     expect(tables.map((table) => table.name)).toEqual([
       "accusations",
@@ -76,8 +77,16 @@ describe("CaseRepository", () => {
     );
     expect(
       repository.saveGenerationDraft(CASE_ID, draft, {
+        provider: "mock",
         textModel: "test-model",
+        responseId: null,
         promptVersion: "case-v1",
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          reasoningTokens: 0,
+          totalTokens: 0,
+        },
       }).status,
     ).toBe("generating_image");
 

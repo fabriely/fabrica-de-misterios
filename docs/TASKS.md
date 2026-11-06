@@ -8,7 +8,7 @@ Cada task deve terminar com seus critérios de aceite passando antes da próxima
 - [x] Task 02 — Configuração segura
 - [x] Task 03 — Contratos do domínio
 - [x] Task 04 — Persistência
-- [ ] Task 05 — Geração textual com IA
+- [x] Task 05 — Geração textual com IA
 - [ ] Task 06 — Geração da imagem
 - [ ] Task 07 — API pública do jogo
 - [ ] Task 08 — Tela de criação
@@ -97,6 +97,29 @@ Critérios de aceite:
 - A segunda acusação para o mesmo caso é recusada pelo banco.
 - O limite futuro de geração pode consultar casos criados em uma janela de tempo.
 
+## Task 05 — Geração textual com IA
+
+Entregas:
+
+- Provedor mock determinístico e sem custo.
+- Provedor OpenAI usando Responses API e Structured Outputs.
+- Prompt versionado `case-v1` com regras de mistério justo.
+- Modelo, esforço, timeout, tentativas e limite de saída configuráveis.
+- Chave obrigatória somente quando o provedor OpenAI estiver ativo.
+- Uma chamada textual para caso, suspeitos, documentos, solução e prompt visual.
+- Validação de schema, referências, quantidades e briefing preservado.
+- Persistência de modelo, provedor, versão do prompt, response ID e tokens.
+- Falhas públicas genéricas sem detalhes sensíveis do provedor.
+
+Critérios de aceite:
+
+- O mock gera um caso válido com as quantidades solicitadas e zero tokens.
+- O provedor OpenAI monta uma requisição estruturada com controles de custo.
+- Respostas incompletas ou com quantidades incorretas são recusadas.
+- O serviço avança um caso válido para `generating_image`.
+- Uma falha marca o caso como `failed` sem persistir detalhes sensíveis.
+- Todos os testes automatizados rodam sem chamar a OpenAI.
+
 ## Próxima task
 
-Task 05 implementará o provedor mock, o prompt versionado e a geração textual estruturada com a OpenAI.
+Task 06 implementará a geração de uma imagem, armazenamento local e fallback visual.
