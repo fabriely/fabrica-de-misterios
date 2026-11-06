@@ -5,7 +5,7 @@ Cada task deve terminar com seus critérios de aceite passando antes da próxima
 ## Progresso
 
 - [x] Task 01 — Fundação do projeto
-- [ ] Task 02 — Configuração segura
+- [x] Task 02 — Configuração segura
 - [ ] Task 03 — Contratos do domínio
 - [ ] Task 04 — Persistência
 - [ ] Task 05 — Geração textual com IA
@@ -36,6 +36,24 @@ Critérios de aceite:
 - A interface consegue consultar a saúde da API pelo proxy do Vite.
 - `npm run lint`, `npm run typecheck`, `npm test` e `npm run build` passam.
 
+## Task 02 — Configuração segura
+
+Entregas:
+
+- Exemplo versionado em `config.example.toml` sem chave real.
+- Arquivo local `config.toml` protegido pelo `.gitignore`.
+- Leitura e validação tipada de todas as seções do TOML.
+- Erros de arquivo ausente, TOML inválido e campos inválidos sem exposição de valores.
+- Resumo seguro que substitui a chave por `[REDACTED]`.
+- API usando `server.host` e `server.port` validados.
+
+Critérios de aceite:
+
+- Uma configuração completa é carregada e tipada.
+- A API falha antes de abrir a porta quando `config.toml` está ausente ou inválido.
+- Mensagens de erro indicam os campos, mas nunca o valor da chave.
+- Somente um resumo redigido pode ser registrado em log.
+
 ## Próxima task
 
-Task 02 implementará o carregamento e a validação do `config.toml`, sem adicionar uma chave real ao repositório.
+Task 03 definirá os contratos completos de caso, suspeitos, documentos, solução privada e acusação.

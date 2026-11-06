@@ -1,10 +1,22 @@
 import { buildApp } from "./app.js";
-
-const app = buildApp();
+import { ConfigError, createSafeConfigSummary, loadConfig } from "./config/index.js";
 
 try {
-  await app.listen({ host: "127.0.0.1", port: 3000 });
+  const config = await loadConfig();
+  const app = buildApp();
+
+  app.log.info(
+    { config: createSafeConfigSummary(config) },
+    "Configuração carregada",
+  );
+
+  await app.listen(config.server);
 } catch (error) {
-  app.log.error(error);
+  if (error instanceof ConfigError) {
+    console.error(`[config] ${error.message}`);
+  } else {
+    console.error("[startup] Não foi possível iniciar a API.", error);
+  }
+
   process.exitCode = 1;
 }

@@ -11,6 +11,14 @@ O projeto está sendo reconstruído como um workspace TypeScript com uma aplica�
 
 ## Desenvolvimento
 
+Crie a configuração local antes da primeira execução:
+
+```powershell
+Copy-Item config.example.toml config.toml
+```
+
+Preencha `openai.api_key` em `config.toml`. Esse arquivo é local, ignorado pelo Git e lido somente pela API.
+
 ```bash
 npm install
 npm run dev
@@ -30,3 +38,10 @@ npm run build
 ```
 
 O andamento do MVP está registrado em [`docs/TASKS.md`](docs/TASKS.md).
+
+## Segurança da configuração
+
+- Nunca coloque a chave em `config.example.toml`, arquivos do frontend ou commits.
+- A API recusa configuração ausente ou inválida antes de abrir a porta HTTP.
+- Resumos de configuração substituem a chave por `[REDACTED]`.
+- Não envie a chave por chat, issue ou captura de tela.

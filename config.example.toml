@@ -1,0 +1,23 @@
+[server]
+host = "127.0.0.1"
+port = 3000
+
+[database]
+path = "./data/database.sqlite"
+
+[openai]
+# Copie este arquivo para config.toml e preencha a chave somente na cópia local.
+# Nunca envie a chave para o Git, frontend, logs ou mensagens.
+api_key = ""
+text_model = "gpt-6-luna"
+image_model = "gpt-image-2.5-flare"
+reasoning_effort = "low"
+image_quality = "low"
+timeout_seconds = 120
+max_retries = 1
+
+[generation]
+suspect_count = 3
+document_count = 4
+image_count = 1
+max_case_generations_per_hour = 5
