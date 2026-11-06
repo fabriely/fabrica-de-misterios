@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import type {
   AccusationOutcome,
+  AccusationResult,
   CaseDocument,
   PublicCase,
 } from "@fabrica/contracts";
 import {
   getAccusation,
   getCase,
+  getReveal,
   PublicApiError,
   submitAccusation,
 } from "../../api/cases";
 import { AccusationDialog } from "./AccusationDialog";
+import { CaseReveal } from "./CaseReveal";
 import { DocumentDialog } from "./DocumentDialog";
 import {
   crimeLabels,
@@ -42,6 +45,12 @@ export function InvestigationPage({
   const [accusationOpen, setAccusationOpen] = useState(false);
   const [accusationSubmitting, setAccusationSubmitting] = useState(false);
   const [accusationError, setAccusationError] = useState<string | null>(null);
+  const [revealState, setRevealState] = useState<
+    | { kind: "idle" }
+    | { kind: "loading" }
+    | { kind: "loaded"; reveal: AccusationResult }
+    | { kind: "error"; message: string }
+  >({ kind: "idle" });
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -98,6 +107,23 @@ export function InvestigationPage({
 
   const dossier = loadState.dossier;
 
+  async function revealCase() {
+    setRevealState({ kind: "loading" });
+    try {
+      const reveal = await getReveal(caseId);
+      setRevealState({ kind: "loaded", reveal });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (error) {
+      setRevealState({
+        kind: "error",
+        message:
+          error instanceof PublicApiError
+            ? error.message
+            : "Não foi possível revelar a solução.",
+      });
+    }
+  }
+
   async function accuse(suspectName: string) {
     setAccusationSubmitting(true);
     setAccusationError(null);
@@ -126,6 +152,17 @@ export function InvestigationPage({
     } finally {
       setAccusationSubmitting(false);
     }
+  }
+
+  if (revealState.kind === "loaded") {
+    return (
+      <CaseReveal
+        dossier={dossier}
+        reveal={revealState.reveal}
+        onBack={() => setRevealState({ kind: "idle" })}
+        onCreateAnother={onReturnHome}
+      />
+    );
   }
 
   return (
@@ -174,7 +211,11 @@ export function InvestigationPage({
       )}
 
       {loadState.accusation ? (
-        <AccusationOutcomeCard outcome={loadState.accusation} />
+        <AccusationOutcomeCard
+          outcome={loadState.accusation}
+          revealState={revealState}
+          onReveal={() => void revealCase()}
+        />
       ) : (
         <section className="accusation-preview">
           <div>
@@ -214,7 +255,15 @@ export function InvestigationPage({
   );
 }
 
-function AccusationOutcomeCard({ outcome }: { outcome: AccusationOutcome }) {
+function AccusationOutcomeCard({
+  outcome,
+  revealState,
+  onReveal,
+}: {
+  outcome: AccusationOutcome;
+  revealState: { kind: "idle" } | { kind: "loading" } | { kind: "error"; message: string };
+  onReveal: () => void;
+}) {
   return (
     <section className={`accusation-outcome ${outcome.correct ? "correct" : "incorrect"}`}>
       <span className="outcome-mark" aria-hidden="true">{outcome.correct ? "✓" : "×"}</span>
@@ -229,6 +278,10 @@ function AccusationOutcomeCard({ outcome }: { outcome: AccusationOutcome }) {
       <span className="outcome-time">
         {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(outcome.submittedAt))}
       </span>
+      <button className="reveal-button" type="button" onClick={onReveal} disabled={revealState.kind === "loading"}>
+        {revealState.kind === "loading" ? "Abrindo solução..." : "Revelar a verdade"}
+      </button>
+      {revealState.kind === "error" && <p className="reveal-error" role="alert">{revealState.message}</p>}
     </section>
   );
 }

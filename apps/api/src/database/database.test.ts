@@ -35,8 +35,8 @@ describe("database migrations", () => {
   it("creates the initial schema exactly once", async () => {
     const { database } = await createFileDatabase();
 
-    expect(getSchemaVersion(database)).toBe(3);
-    expect(runMigrations(database)).toBe(3);
+    expect(getSchemaVersion(database)).toBe(4);
+    expect(runMigrations(database)).toBe(4);
 
     const migrations = database
       .prepare("SELECT version, name FROM schema_migrations")
@@ -51,6 +51,7 @@ describe("database migrations", () => {
       { version: 1, name: "initial_cases_and_accusations" },
       { version: 2, name: "generation_metadata" },
       { version: 3, name: "image_metadata" },
+      { version: 4, name: "accusation_decisive_evidence" },
     ]);
     expect(tables.map((table) => table.name)).toEqual([
       "accusations",
@@ -170,6 +171,7 @@ describe("AccusationRepository", () => {
       motive: "Dívidas do hotel.",
       method: "Uso da chave mestra.",
       timeline: draft.privateSolution.timeline,
+      decisiveEvidenceIds: draft.privateSolution.decisiveEvidenceIds,
       explanation: draft.privateSolution.explanation,
       submittedAt: record.submittedAt,
     });
@@ -179,6 +181,62 @@ describe("AccusationRepository", () => {
     expect(() =>
       accusations.submit({ ...record, id: "accusation_2" }, result),
     ).toThrow(AccusationAlreadyExistsError);
+  });
+
+  it("backfills decisive evidence in accusations created before schema 4", async () => {
+    const { database, filename } = await createFileDatabase();
+    const cases = new CaseRepository(database);
+    const accusations = new AccusationRepository(database);
+    const draft = validGenerationOutput();
+    cases.createPending({
+      id: CASE_ID,
+      briefing: draft.publicCase.briefing,
+      createdAt: CREATED_AT,
+    });
+    cases.markGeneratingCase(CASE_ID);
+    cases.saveGenerationDraft(CASE_ID, draft, {
+      provider: "mock",
+      textModel: "mock-case-generator",
+      responseId: null,
+      promptVersion: "case-v1",
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        reasoningTokens: 0,
+        totalTokens: 0,
+      },
+    });
+    cases.complete(materializePublicCase(draft.publicCase));
+
+    const record = validAccusationRecord();
+    accusations.submit(record, {
+      caseId: CASE_ID,
+      correct: true,
+      accusedName: "Helena Prado",
+      culpritId: "suspect_1",
+      culpritName: "Helena Prado",
+      motive: draft.privateSolution.motive,
+      method: draft.privateSolution.method,
+      timeline: draft.privateSolution.timeline,
+      decisiveEvidenceIds: draft.privateSolution.decisiveEvidenceIds,
+      explanation: draft.privateSolution.explanation,
+      submittedAt: record.submittedAt,
+    });
+
+    database.exec(`
+      UPDATE accusations
+      SET result_json = json_remove(result_json, '$.decisiveEvidenceIds');
+      DELETE FROM schema_migrations WHERE version = 4;
+    `);
+    database.close();
+
+    const reopened = openDatabase({ filename });
+    openDatabases.push(reopened.database);
+    expect(reopened.schemaVersion).toBe(4);
+    expect(
+      new AccusationRepository(reopened.database).findByCaseId(CASE_ID)?.result
+        .decisiveEvidenceIds,
+    ).toEqual(draft.privateSolution.decisiveEvidenceIds);
   });
 });
 

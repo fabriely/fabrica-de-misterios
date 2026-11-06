@@ -35,6 +35,7 @@ export const accusationResultSchema = z
     motive: paragraphSchema,
     method: paragraphSchema,
     timeline: z.array(timelineEventSchema).min(2).max(16),
+    decisiveEvidenceIds: z.array(entityIdSchema).min(2).max(8),
     explanation: longTextSchema,
     submittedAt: timestampSchema,
   })

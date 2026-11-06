@@ -2,6 +2,7 @@ import type Database from "better-sqlite3";
 import { initialMigration } from "./migrations/001-initial.js";
 import { generationMetadataMigration } from "./migrations/002-generation-metadata.js";
 import { imageMetadataMigration } from "./migrations/003-image-metadata.js";
+import { accusationEvidenceMigration } from "./migrations/004-accusation-evidence.js";
 
 export type Migration = {
   version: number;
@@ -13,6 +14,7 @@ const migrations: Migration[] = [
   initialMigration,
   generationMetadataMigration,
   imageMetadataMigration,
+  accusationEvidenceMigration,
 ];
 
 export function runMigrations(database: Database.Database): number {

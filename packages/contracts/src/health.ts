@@ -4,6 +4,7 @@ export const API_PATHS = {
   case: (caseId: string) => `/api/cases/${caseId}`,
   caseStatus: (caseId: string) => `/api/cases/${caseId}/status`,
   accusation: (caseId: string) => `/api/cases/${caseId}/accusation`,
+  reveal: (caseId: string) => `/api/cases/${caseId}/reveal`,
 } as const;
 
 export type HealthResponse = {

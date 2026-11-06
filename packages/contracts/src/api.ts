@@ -5,6 +5,7 @@ export const apiErrorCodeSchema = z.enum([
   "not_found",
   "case_not_ready",
   "accusation_already_submitted",
+  "accusation_required",
   "internal_error",
 ]);
 

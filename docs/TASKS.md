@@ -14,7 +14,7 @@ Cada task deve terminar com seus critérios de aceite passando antes da próxima
 - [x] Task 08 — Tela de criação
 - [x] Task 09 — Tela de investigação
 - [x] Task 10 — Acusação única
-- [ ] Task 11 — Revelação
+- [x] Task 11 — Revelação
 - [ ] Task 12 — Controle de custos e robustez
 - [ ] Task 13 — Testes finais e documentação
 
@@ -237,6 +237,29 @@ Critérios de aceite:
 - O frontend nunca recebe a solução completa nesta etapa.
 - Acerto e erro ficam persistidos e visíveis ao reabrir o caso.
 
+## Task 11 — Revelação
+
+Entregas:
+
+- Endpoint de revelação protegido pela existência da acusação.
+- Culpado, motivo, método, cronologia e explicação completos.
+- IDs das evidências decisivas ligados aos documentos e pistas públicas.
+- Migração do schema 4 para acusações já persistidas.
+- Tela de solução com veredito do jogador e identidade do culpado.
+- Linha do tempo visual dos acontecimentos.
+- Destaque das provas que demonstravam a solução.
+- Ações para rever o dossiê ou criar um novo caso.
+
+Critérios de aceite:
+
+- A revelação é recusada antes da acusação.
+- Acertar ou errar libera a mesma solução completa.
+- O resultado imediato da Task 10 continua sem dados privados.
+- A cronologia e as evidências correspondem à solução persistida.
+- Acusações antigas continuam legíveis após a migração.
+- Atualizar a página mantém a possibilidade de abrir a solução.
+- A tela funciona em desktop e dispositivos móveis.
+
 ## Próxima task
 
-Task 11 implementará a revelação completa após a acusação, incluindo culpado, motivo, método, cronologia e explicação das evidências.
+Task 12 implementará limites de geração, proteção de custos, tratamento global de erros e melhorias de robustez operacional.

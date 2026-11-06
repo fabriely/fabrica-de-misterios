@@ -3,6 +3,7 @@ import {
   createCase,
   getAccusation,
   getCase,
+  getReveal,
   PublicApiError,
   submitAccusation,
   waitForCase,
@@ -141,6 +142,28 @@ describe("cases API client", () => {
     );
 
     await expect(getAccusation(CASE_ID)).resolves.toBeNull();
+  });
+
+  it("loads the complete reveal only from its dedicated endpoint", async () => {
+    const reveal = {
+      caseId: CASE_ID,
+      correct: true,
+      accusedName: "Helena Prado",
+      culpritId: "suspect_1",
+      culpritName: "Helena Prado",
+      motive: "Precisava quitar uma dívida.",
+      method: "Usou uma chave de acesso.",
+      timeline: [
+        { time: "21:08", event: "A porta foi aberta." },
+        { time: "21:10", event: "O crime aconteceu." },
+      ],
+      decisiveEvidenceIds: ["document_1", "visual_clue_1"],
+      explanation: "O registro e o relógio contradizem o álibi.",
+      submittedAt: "2026-11-06T19:00:00.000Z",
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, reveal)));
+
+    await expect(getReveal(CASE_ID)).resolves.toEqual(reveal);
   });
 });
 

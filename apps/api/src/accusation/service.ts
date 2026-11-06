@@ -60,6 +60,7 @@ export class AccusationService {
       motive: bundle.privateSolution.motive,
       method: bundle.privateSolution.method,
       timeline: bundle.privateSolution.timeline,
+      decisiveEvidenceIds: bundle.privateSolution.decisiveEvidenceIds,
       explanation: bundle.privateSolution.explanation,
       submittedAt,
     });
@@ -82,6 +83,10 @@ export class AccusationService {
   findOutcome(caseId: string): AccusationOutcome | null {
     const stored = this.accusations.findByCaseId(caseId);
     return stored ? toOutcome(stored.result) : null;
+  }
+
+  findReveal(caseId: string) {
+    return this.accusations.findByCaseId(caseId)?.result ?? null;
   }
 }
 

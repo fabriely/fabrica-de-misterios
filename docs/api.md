@@ -53,6 +53,14 @@ A resposta imediata contém apenas `caseId`, `correct`, `accusedName` e `submitt
 
 `GET /api/cases/:caseId/accusation` retorna esse resultado mínimo depois que a chance foi usada, permitindo manter o bloqueio após atualizar a página.
 
+## Revelação
+
+`GET /api/cases/:caseId/reveal`
+
+Antes da acusação, esse endpoint retorna `403 accusation_required`. Depois da tentativa única, retorna o resultado completo com culpado, motivo, método, cronologia, evidências decisivas e explicação.
+
+As evidências decisivas são IDs de documentos e pistas visuais que já faziam parte do dossiê público. Acusações salvas antes do schema 4 são atualizadas automaticamente com esses vínculos.
+
 ## Erros
 
 Erros públicos seguem o formato:
@@ -64,4 +72,4 @@ Erros públicos seguem o formato:
 }
 ```
 
-Os códigos atuais são `invalid_request`, `not_found`, `case_not_ready`, `accusation_already_submitted` e `internal_error`. Detalhes internos dos provedores não são enviados ao cliente nem registrados pela fila de geração.
+Os códigos atuais são `invalid_request`, `not_found`, `case_not_ready`, `accusation_already_submitted`, `accusation_required` e `internal_error`. Detalhes internos dos provedores não são enviados ao cliente nem registrados pela fila de geração.

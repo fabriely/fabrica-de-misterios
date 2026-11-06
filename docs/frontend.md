@@ -26,6 +26,8 @@ O caderno do investigador salva anotações no armazenamento local do navegador,
 
 A solução privada não é solicitada pelo frontend. A acusação apresenta os suspeitos por nome, exige confirmação e registra uma única tentativa. Depois do envio, a interface mostra apenas acerto ou erro e mantém o caso bloqueado mesmo após atualizar a página.
 
+Após a acusação, o botão `Revelar a verdade` consulta o endpoint protegido e abre a solução completa. A tela relaciona o culpado ao motivo, método, linha do tempo e às evidências decisivas do dossiê, mantendo uma ação para rever a investigação ou começar outro caso.
+
 Erros públicos da API aparecem no próprio formulário. A requisição e o polling são cancelados se a tela for desmontada, evitando atualizações tardias de estado.
 
 ## Desenvolvimento

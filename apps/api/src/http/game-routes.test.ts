@@ -168,6 +168,15 @@ describe("public game API", () => {
     const caseId = creation.json().caseId as string;
     await context.queue.drain();
 
+    const prematureReveal = await context.app.inject({
+      method: "GET",
+      url: API_PATHS.reveal(caseId),
+    });
+    expect(prematureReveal.statusCode).toBe(403);
+    expect(prematureReveal.json()).toMatchObject({
+      code: "accusation_required",
+    });
+
     const accusation = await context.app.inject({
       method: "POST",
       url: API_PATHS.accusation(caseId),
@@ -188,6 +197,20 @@ describe("public game API", () => {
       url: API_PATHS.accusation(caseId),
     });
     expect(persisted.json()).toEqual(accusation.json());
+
+    const reveal = await context.app.inject({
+      method: "GET",
+      url: API_PATHS.reveal(caseId),
+    });
+    expect(reveal.statusCode).toBe(200);
+    expect(reveal.json()).toMatchObject({
+      caseId,
+      correct: true,
+      culpritId: "suspect_1",
+      culpritName: "Helena Prado",
+      decisiveEvidenceIds: ["document_1", "visual_clue_1"],
+    });
+    expect(reveal.json().timeline).toHaveLength(3);
 
     const secondAttempt = await context.app.inject({
       method: "POST",

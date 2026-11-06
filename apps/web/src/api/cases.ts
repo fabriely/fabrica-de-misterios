@@ -2,6 +2,7 @@ import {
   API_PATHS,
   apiErrorResponseSchema,
   accusationOutcomeSchema,
+  accusationResultSchema,
   caseStatusResponseSchema,
   createCaseRequestSchema,
   publicCaseSchema,
@@ -10,6 +11,7 @@ import {
 import type {
   CaseStatusResponse,
   AccusationOutcome,
+  AccusationResult,
   CreateCaseRequest,
   SubmitAccusationRequest,
   PublicCase,
@@ -101,6 +103,17 @@ export async function submitAccusation(
   });
   const body = await parseApiBody(response);
   return accusationOutcomeSchema.parse(body);
+}
+
+export async function getReveal(
+  caseId: string,
+  signal?: AbortSignal,
+): Promise<AccusationResult> {
+  const response = await fetch(API_PATHS.reveal(caseId), {
+    signal: signal ?? null,
+  });
+  const body = await parseApiBody(response);
+  return accusationResultSchema.parse(body);
 }
 
 async function parseStatusResponse(response: Response) {

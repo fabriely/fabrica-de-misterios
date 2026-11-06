@@ -206,6 +206,33 @@ export function registerGameRoutes(
     },
   );
 
+  app.get<{ Params: { caseId: string } }>(
+    "/api/cases/:caseId/reveal",
+    async (request, reply) => {
+      const caseId = parseCaseId(request.params.caseId);
+      if (!caseId) {
+        return sendError(
+          reply,
+          400,
+          "invalid_request",
+          "O identificador do caso é inválido.",
+        );
+      }
+      if (!dependencies.cases.findStatus(caseId)) return caseNotFound(reply);
+
+      const reveal = dependencies.accusations.findReveal(caseId);
+      if (!reveal) {
+        return sendError(
+          reply,
+          403,
+          "accusation_required",
+          "A solução só pode ser revelada depois da acusação.",
+        );
+      }
+      return reply.send(reveal);
+    },
+  );
+
   app.get<{ Params: { filename: string } }>(
     `${publicPath}/:filename`,
     async (request, reply) => {
