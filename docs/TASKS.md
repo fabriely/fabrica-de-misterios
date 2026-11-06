@@ -7,7 +7,7 @@ Cada task deve terminar com seus critérios de aceite passando antes da próxima
 - [x] Task 01 — Fundação do projeto
 - [x] Task 02 — Configuração segura
 - [x] Task 03 — Contratos do domínio
-- [ ] Task 04 — Persistência
+- [x] Task 04 — Persistência
 - [ ] Task 05 — Geração textual com IA
 - [ ] Task 06 — Geração da imagem
 - [ ] Task 07 — API pública do jogo
@@ -75,6 +75,28 @@ Critérios de aceite:
 - Caso público e solução privada precisam usar o mesmo ID.
 - A acusação aceita um único nome não vazio.
 
+## Task 04 — Persistência
+
+Entregas:
+
+- SQLite local com criação automática do diretório configurado.
+- Migrações transacionais, versionadas e idempotentes.
+- Tabelas separadas para casos e acusações.
+- Estados persistidos de geração e mensagens de falha.
+- Armazenamento separado de briefing, rascunho público, dossiê público e solução privada.
+- Repositório de casos com validação de transições.
+- Repositório de acusações com uma tentativa por caso garantida no banco.
+- WAL, chaves estrangeiras e espera controlada para concorrência local.
+
+Critérios de aceite:
+
+- A migração inicial pode ser executada repetidamente sem duplicação.
+- Um caso completo continua disponível depois de fechar e reabrir o banco.
+- A leitura pública não contém a solução privada.
+- Estados inválidos são recusados.
+- A segunda acusação para o mesmo caso é recusada pelo banco.
+- O limite futuro de geração pode consultar casos criados em uma janela de tempo.
+
 ## Próxima task
 
-Task 04 implementará SQLite, migrações e repositórios para casos e acusações.
+Task 05 implementará o provedor mock, o prompt versionado e a geração textual estruturada com a OpenAI.

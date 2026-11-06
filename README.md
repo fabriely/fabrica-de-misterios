@@ -45,3 +45,7 @@ O andamento do MVP está registrado em [`docs/TASKS.md`](docs/TASKS.md).
 - A API recusa configuração ausente ou inválida antes de abrir a porta HTTP.
 - Resumos de configuração substituem a chave por `[REDACTED]`.
 - Não envie a chave por chat, issue ou captura de tela.
+
+## Persistência local
+
+O MVP usa SQLite no caminho definido por `database.path`. Na primeira execução, a API cria o diretório, aplica migrações versionadas e habilita chaves estrangeiras e WAL. Arquivos `*.sqlite` e imagens geradas permanecem fora do Git.

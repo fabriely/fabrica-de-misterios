@@ -2,6 +2,15 @@ export { API_PATHS } from "./health.js";
 export type { HealthResponse } from "./health.js";
 
 export {
+  caseIdSchema,
+  entityIdSchema,
+  longTextSchema,
+  paragraphSchema,
+  shortTextSchema,
+  timestampSchema,
+} from "./shared.js";
+
+export {
   caseBriefingSchema,
   createCaseRequestSchema,
   crimeTypeSchema,
