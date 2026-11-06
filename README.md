@@ -43,6 +43,8 @@ A geração textual e a troca entre provedor mock e OpenAI estão descritas em [
 
 A geração de uma única cena, o armazenamento local e o fallback visual estão descritos em [`docs/images.md`](docs/images.md).
 
+As rotas para criar e consultar casos estão documentadas em [`docs/api.md`](docs/api.md).
+
 ## Segurança da configuração
 
 - Nunca coloque a chave em `config.example.toml`, arquivos do frontend ou commits.

@@ -8,6 +8,11 @@ export {
   CASE_PROMPT_VERSION,
 } from "./prompts/case-v1.js";
 export { CaseTextGenerationService } from "./service.js";
+export { CaseGenerationQueue } from "./queue.js";
+export {
+  DefaultCaseGenerationWorkflow,
+  type CaseGenerationWorkflow,
+} from "./workflow.js";
 export { validateGeneratedCase } from "./validate-output.js";
 export type {
   CaseGenerationMetadata,

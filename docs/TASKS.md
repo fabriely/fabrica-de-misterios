@@ -10,7 +10,7 @@ Cada task deve terminar com seus critérios de aceite passando antes da próxima
 - [x] Task 04 — Persistência
 - [x] Task 05 — Geração textual com IA
 - [x] Task 06 — Geração da imagem
-- [ ] Task 07 — API pública do jogo
+- [x] Task 07 — API pública do jogo
 - [ ] Task 08 — Tela de criação
 - [ ] Task 09 — Tela de investigação
 - [ ] Task 10 — Acusação única
@@ -142,6 +142,29 @@ Critérios de aceite:
 - Falha sem fallback marca o caso como `failed` sem expor detalhes do provedor.
 - Todos os testes automatizados rodam sem chamar a OpenAI.
 
+## Task 07 — API pública do jogo
+
+Entregas:
+
+- `POST /api/cases` com validação do briefing e resposta `202`.
+- Fila local assíncrona para orquestrar texto e imagem.
+- `GET /api/cases/:caseId/status` para acompanhar o progresso.
+- `GET /api/cases/:caseId` expondo somente o dossiê público pronto.
+- Rota configurável para servir a imagem registrada no banco.
+- Contrato uniforme de erros públicos.
+- Encerramento gracioso que aguarda gerações em andamento.
+- Validação de UUID, contenção de caminhos e cabeçalhos seguros nas imagens.
+
+Critérios de aceite:
+
+- Um briefing válido cria um caso e retorna imediatamente o estado `queued`.
+- O fluxo mock passa por texto e imagem e termina em `ready`.
+- O status e o dossiê podem ser consultados pelo UUID.
+- Casos em andamento retornam `409` ao tentar abrir o dossiê.
+- Entradas inválidas e registros inexistentes retornam erros consistentes.
+- A API pública nunca contém a solução privada.
+- A imagem gerada pode ser carregada pela URL presente no dossiê.
+
 ## Próxima task
 
-Task 07 implementará as rotas públicas para criar e consultar casos, servir a imagem e orquestrar as duas etapas de geração.
+Task 08 implementará a tela de criação com as escolhas do briefing e acompanhamento visual da geração.

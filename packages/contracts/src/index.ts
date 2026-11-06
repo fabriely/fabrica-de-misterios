@@ -1,6 +1,9 @@
 export { API_PATHS } from "./health.js";
 export type { HealthResponse } from "./health.js";
 
+export { apiErrorCodeSchema, apiErrorResponseSchema } from "./api.js";
+export type { ApiErrorCode, ApiErrorResponse } from "./api.js";
+
 export {
   caseIdSchema,
   entityIdSchema,
