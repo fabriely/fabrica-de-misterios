@@ -2598,8 +2598,50 @@ h2 {
 .premise-intro h1 { font-size: clamp(2.4rem, 5vw, 4.3rem); line-height: 1.05; margin: 12px 0 18px; }
 .premise-intro p { font-size: 1.1rem; line-height: 1.6; margin-bottom: 22px; }
 .premise-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
-.premise-card { display: flex; flex-direction: column; gap: 18px; min-height: 330px; padding: 30px; background: #f1ecdf; border: 1px solid #c9bfae; box-shadow: 0 12px 32px #15191418; }
-.premise-card h2 { font-size: 1.65rem; line-height: 1.15; margin: 0; }
-.premise-card p { line-height: 1.6; flex: 1; margin: 0; }
+.premise-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 330px;
+  padding: 30px;
+  background: #f1ecdf;
+  border: 1px solid #c9bfae;
+  box-shadow: 0 12px 32px #15191418;
+  color: #26302a;
+}
+
+.premise-card h2 {
+  color: #26302a;
+  font-size: 1.65rem;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.premise-card p {
+  color: #55584f;
+  line-height: 1.6;
+  flex: 1;
+  margin: 0;
+}
+
+.section-number {
+  color: #a7833e;
+  border-color: #8b8066;
+}
 .premise-card button { align-self: stretch; }
-@media (max-width: 800px) { .premise-grid { grid-template-columns: 1fr; } .premise-card { min-height: 0; } }
+
+@media (max-width: 900px) {
+  .premise-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .premise-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .premise-layout {
+    padding: 40px 20px 60px;
+  }
+}

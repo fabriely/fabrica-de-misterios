@@ -36,7 +36,8 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
     "@vercel/blob": "^2.4.0",
-    "@vercel/queue": "^0.11.0"
+    "@vercel/queue": "^0.11.0",
+    "dotenv": "^18.0.9"
   },
   "overrides": {
     "@vercel/queue": {

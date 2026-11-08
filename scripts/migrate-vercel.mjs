@@ -1,7 +1,16 @@
 import { neon } from "@neondatabase/serverless";
+import dotenv from "dotenv";
 
-const url = process.env.DATABASE_URL;
-if (!url) throw new Error("Defina DATABASE_URL antes de executar a migração.");
+dotenv.config({ path: ".env.development.local" });
+
+const url =
+  process.env.DATABASE_URL_UNPOOLED ||
+  process.env.DATABASE_URL;
+
+if (!url) {
+  throw new Error("Defina DATABASE_URL_UNPOOLED antes de executar a migração.");
+}
+
 const sql = neon(url);
 
 await sql.query(`CREATE TABLE IF NOT EXISTS premise_sets (

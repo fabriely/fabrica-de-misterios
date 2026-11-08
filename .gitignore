@@ -20,3 +20,4 @@ data/images/*
 .idea/
 .vscode/
 npm-debug.log*
+.vercel
