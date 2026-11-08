@@ -1,5 +1,6 @@
 export { AccusationRepository } from "./accusation-repository.js";
 export { CaseRepository } from "./case-repository.js";
+export { PremiseRepository } from "./premise-repository.js";
 export {
   AccusationAlreadyExistsError,
   CorruptStoredDataError,

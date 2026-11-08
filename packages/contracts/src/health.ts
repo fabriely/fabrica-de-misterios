@@ -1,6 +1,7 @@
 export const API_PATHS = {
   health: "/api/health",
   cases: "/api/cases",
+  premises: "/api/premises",
   case: (caseId: string) => `/api/cases/${caseId}`,
   caseStatus: (caseId: string) => `/api/cases/${caseId}/status`,
   accusation: (caseId: string) => `/api/cases/${caseId}/accusation`,

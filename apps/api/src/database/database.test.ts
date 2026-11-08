@@ -15,6 +15,7 @@ import { getSchemaVersion, runMigrations } from "./migrate.js";
 import { openDatabase } from "./open.js";
 
 const CASE_ID = "d819d84d-35d4-4e70-812a-47b8126f724b";
+const PLAYER_ID = "bd73b2e1-ccfb-4af4-82b4-b20d6400cdb2";
 const CREATED_AT = "2026-11-06T12:00:00.000Z";
 const openDatabases: Database.Database[] = [];
 const temporaryDirectories: string[] = [];
@@ -35,8 +36,8 @@ describe("database migrations", () => {
   it("creates the initial schema exactly once", async () => {
     const { database } = await createFileDatabase();
 
-    expect(getSchemaVersion(database)).toBe(4);
-    expect(runMigrations(database)).toBe(4);
+    expect(getSchemaVersion(database)).toBe(5);
+    expect(runMigrations(database)).toBe(5);
 
     const migrations = database
       .prepare("SELECT version, name FROM schema_migrations")
@@ -52,10 +53,12 @@ describe("database migrations", () => {
       { version: 2, name: "generation_metadata" },
       { version: 3, name: "image_metadata" },
       { version: 4, name: "accusation_decisive_evidence" },
+      { version: 5, name: "premises_and_independent_players" },
     ]);
     expect(tables.map((table) => table.name)).toEqual([
       "accusations",
       "cases",
+      "premise_sets",
       "schema_migrations",
     ]);
   });
@@ -152,7 +155,7 @@ describe("CaseRepository", () => {
     expect(repository.countCreatedSince("2026-11-06T13:00:00.000Z")).toBe(1);
   });
 
-  it("recovers queued work and safely fails interrupted generations", async () => {
+  it("requeues unfinished cases after a restart", async () => {
     const { database } = await createFileDatabase();
     const repository = new CaseRepository(database);
     const draft = validGenerationOutput();
@@ -170,11 +173,13 @@ describe("CaseRepository", () => {
     repository.markGeneratingCase(interruptedId);
 
     expect(repository.recoverAfterRestart()).toEqual([
-      { caseId: CASE_ID, briefing: draft.publicCase.briefing },
+      { caseId: CASE_ID, briefing: draft.publicCase.briefing, premise: null },
+      { caseId: interruptedId, briefing: draft.publicCase.briefing, premise: null },
     ]);
     expect(repository.findStatus(interruptedId)).toMatchObject({
-      status: "failed",
-      errorMessage: expect.stringContaining("interrompida por um reinício"),
+      status: "queued",
+      progress: 0,
+      errorMessage: null,
     });
     expect(repository.findStatus(CASE_ID)?.status).toBe("queued");
   });
@@ -204,7 +209,7 @@ describe("AccusationRepository", () => {
     });
 
     expect(accusations.submit(record, result).result.correct).toBe(true);
-    expect(accusations.findByCaseId(CASE_ID)).toEqual({ record, result });
+    expect(accusations.findByCaseId(CASE_ID, PLAYER_ID)).toEqual({ record, result });
     expect(() =>
       accusations.submit({ ...record, id: "accusation_2" }, result),
     ).toThrow(AccusationAlreadyExistsError);
@@ -259,9 +264,9 @@ describe("AccusationRepository", () => {
 
     const reopened = openDatabase({ filename });
     openDatabases.push(reopened.database);
-    expect(reopened.schemaVersion).toBe(4);
+    expect(reopened.schemaVersion).toBe(5);
     expect(
-      new AccusationRepository(reopened.database).findByCaseId(CASE_ID)?.result
+      new AccusationRepository(reopened.database).findByCaseId(CASE_ID, PLAYER_ID)?.result
         .decisiveEvidenceIds,
     ).toEqual(draft.privateSolution.decisiveEvidenceIds);
   });
@@ -280,6 +285,7 @@ function validAccusationRecord(): AccusationRecord {
   return {
     id: "accusation_1",
     caseId: CASE_ID,
+    playerId: PLAYER_ID,
     suspectName: "Helena Prado",
     normalizedSuspectName: "helena prado",
     submittedAt: "2026-11-06T15:00:00.000Z",

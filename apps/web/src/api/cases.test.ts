@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createCase,
+  createPremises,
   getAccusation,
   getCase,
   getReveal,
@@ -16,7 +17,7 @@ afterEach(() => {
 });
 
 describe("cases API client", () => {
-  it("creates a case with the validated briefing", async () => {
+  it("creates a case from a selected premise", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse(202, {
         caseId: CASE_ID,
@@ -37,6 +38,18 @@ describe("cases API client", () => {
         body: JSON.stringify(validRequest()),
       }),
     );
+  });
+
+  it("requests three spoiler-free premise options", async () => {
+    const set = { id: CASE_ID, briefing: validBriefing(), options: [
+      { id: "premise_1", title: "Primeira visita", synopsis: "Uma visita inesperada muda o curso da noite." },
+      { id: "premise_2", title: "Hora esquecida", synopsis: "Um horário ausente deixa perguntas sem resposta." },
+      { id: "premise_3", title: "Objeto perdido", synopsis: "Um objeto aparece em um lugar improvável." },
+    ] };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(201, set));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(createPremises({ briefing: validBriefing() })).resolves.toEqual(set);
+    expect(fetchMock).toHaveBeenCalledWith("/api/premises", expect.objectContaining({ method: "POST" }));
   });
 
   it("polls until the case is ready", async () => {
@@ -176,14 +189,19 @@ function jsonResponse(status: number, body: unknown) {
 
 function validRequest() {
   return {
-    briefing: {
+    premiseSetId: CASE_ID,
+    premiseId: "premise_1" as const,
+  };
+}
+
+function validBriefing() {
+  return {
       period: "victorian" as const,
       customPeriod: null,
       crimeType: "theft" as const,
       setting: "Hotel isolado nas montanhas",
       difficulty: "medium" as const,
       tone: "classic" as const,
-    },
   };
 }
 
@@ -191,7 +209,7 @@ function validPublicCase() {
   return {
     id: CASE_ID,
     createdAt: "2026-11-06T18:19:10.475Z",
-    briefing: validRequest().briefing,
+    briefing: validBriefing(),
     title: "O segredo das 21h10",
     synopsis: "Uma morte suspeita foi descoberta.",
     incident: "O incidente ocorreu entre 21h e 21h20.",

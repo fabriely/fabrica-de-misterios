@@ -1,10 +1,12 @@
 import type {
   CaseBriefing,
   CaseGenerationOutput,
+  SelectedPremise,
 } from "@fabrica/contracts";
 
 export type CaseGenerationRequest = {
   briefing: CaseBriefing;
+  premise?: SelectedPremise | null;
   suspectCount: number;
   documentCount: number;
 };

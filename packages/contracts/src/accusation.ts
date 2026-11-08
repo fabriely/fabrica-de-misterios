@@ -18,6 +18,7 @@ export const accusationRecordSchema = z
   .object({
     id: entityIdSchema,
     caseId: caseIdSchema,
+    playerId: caseIdSchema,
     suspectName: z.string().trim().min(1).max(100),
     normalizedSuspectName: z.string().min(1).max(100),
     submittedAt: timestampSchema,

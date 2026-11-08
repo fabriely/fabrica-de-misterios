@@ -1,8 +1,8 @@
 # Fábrica de Mistérios
 
-Aplicação para criar e investigar casos fictícios gerados por IA. O jogador escolhe o briefing, examina uma cena, suspeitos e documentos, e tem uma única chance de acusar alguém antes da revelação completa.
+Aplicação para criar e investigar casos fictícios gerados por IA. O jogador escolhe o briefing e uma entre três premissas sem spoilers, examina a cena, suspeitos e documentos, e tem uma chance de acusar alguém antes da revelação completa. Cada jogador investiga o mesmo caso de forma independente.
 
-O MVP é um workspace TypeScript com uma aplicação React, uma API Node.js, SQLite local e contratos compartilhados. Ele funciona integralmente com o provedor mock sem custo e pode usar a OpenAI para gerar o texto e uma imagem por caso.
+O projeto é um workspace TypeScript com aplicação React e contratos compartilhados. O desenvolvimento local usa API Node.js e SQLite; a publicação na Vercel usa Functions, Neon Postgres, Blob e Queues. O provedor mock permite testar sem créditos; a OpenAI gera texto e uma imagem por caso quando configurada.
 
 ## Requisitos
 
@@ -52,6 +52,10 @@ O roteiro de testes está em [`docs/testing.md`](docs/testing.md), e o primeiro 
 
 O estado final e os requisitos antes de uma implantação pública estão em [`docs/release-checklist.md`](docs/release-checklist.md).
 
+A comparação entre o MVP atual e a arquitetura alvo do projeto está em [`docs/architecture-alignment.md`](docs/architecture-alignment.md), com o diagrama editável em [`docs/fabrica-de-misterios.dsl`](docs/fabrica-de-misterios.dsl).
+
+O passo a passo de publicação está em [`docs/deploy-vercel.md`](docs/deploy-vercel.md).
+
 ## Segurança da configuração
 
 - Nunca coloque a chave em `config.example.toml`, arquivos do frontend ou commits.
@@ -67,10 +71,11 @@ O MVP usa SQLite no caminho definido por `database.path`. Na primeira execução
 
 `config.example.toml` usa `generation.provider = "mock"`. Nesse modo, a aplicação gera um caso determinístico localmente e aceita `openai.api_key = ""`. Para um teste real, altere o provedor para `openai` e preencha a chave apenas no `config.toml` ignorado pelo Git.
 
-## Escopo do MVP
+## Escopo atual
 
 - Um caso por criação, com quantidades configuráveis de suspeitos e documentos.
 - Exatamente uma imagem de cena.
-- Uma acusação por nome e sem segunda tentativa.
+- Uma acusação por jogador e caso, sem segunda tentativa.
 - Solução privada até a acusação ser persistida.
-- Fila local e armazenamento local; não há contas de usuário nem publicação multiusuário.
+- Sessões anônimas identificadas por um UUID salvo no navegador. O link do caso pode ser compartilhado sem compartilhar a revelação.
+- A versão Vercel usa fila e armazenamento persistentes; a conexão com os serviços externos precisa ser feita no projeto da equipe.

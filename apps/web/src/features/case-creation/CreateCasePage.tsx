@@ -1,19 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import type {
   CaseBriefing,
-  CaseGenerationStatus,
-  CaseStatusResponse,
   CrimeType,
   Difficulty,
   MysteryTone,
   PeriodPreset,
+  PremiseSet,
 } from "@fabrica/contracts";
-import { createCase, PublicApiError, waitForCase } from "../../api/cases";
-import { GenerationProgress } from "./GenerationProgress";
+import { createCase, createPremises, PublicApiError } from "../../api/cases";
 
 type CreateCasePageProps = {
   apiAvailable: boolean;
-  onCaseReady: (caseId: string) => void;
+  onCaseCreated: (caseId: string) => void;
 };
 
 type FormState = {
@@ -36,14 +34,13 @@ const initialForm: FormState = {
 
 export function CreateCasePage({
   apiAvailable,
-  onCaseReady,
+  onCaseCreated,
 }: CreateCasePageProps) {
   const [form, setForm] = useState<FormState>(initialForm);
-  const [status, setStatus] = useState<CaseStatusResponse | null>(null);
+  const [premises, setPremises] = useState<PremiseSet | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
-  const isGenerating = status !== null && !isTerminal(status.status);
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
@@ -56,18 +53,10 @@ export function CreateCasePage({
     controllerRef.current = controller;
 
     try {
-      const created = await createCase(
-        { briefing: toBriefing(form) },
-        controller.signal,
-      );
-      setStatus(created);
-      await waitForCase(created.caseId, setStatus, {
-        signal: controller.signal,
-      });
-      onCaseReady(created.caseId);
+      const generated = await createPremises({ briefing: toBriefing(form) }, controller.signal);
+      setPremises(generated);
     } catch (error) {
       if (controller.signal.aborted) return;
-      setStatus(null);
       setErrorMessage(
         error instanceof PublicApiError
           ? error.message
@@ -81,8 +70,49 @@ export function CreateCasePage({
     }
   }
 
-  if (isGenerating && status) {
-    return <GenerationProgress status={status} />;
+  async function choosePremise(premiseId: PremiseSet["options"][number]["id"]) {
+    if (!premises || controllerRef.current) return;
+    setSubmitting(true);
+    setErrorMessage(null);
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    try {
+      const created = await createCase({ premiseSetId: premises.id, premiseId }, controller.signal);
+      onCaseCreated(created.caseId);
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setErrorMessage(error instanceof PublicApiError ? error.message : "Não foi possível gerar o caso. Tente novamente.");
+      }
+    } finally {
+      if (controllerRef.current === controller) controllerRef.current = null;
+      setSubmitting(false);
+    }
+  }
+
+  if (premises) {
+    return (
+      <main className="premise-layout">
+        <section className="premise-intro">
+          <span className="kicker">TRÊS CAMINHOS · SEM SPOILERS</span>
+          <h1>Qual mistério você quer investigar?</h1>
+          <p>Escolha uma situação inicial. A fábrica criará suspeitos, documentos, pistas e solução só depois da sua escolha.</p>
+          <button className="secondary-button" type="button" disabled={submitting} onClick={() => { setPremises(null); setErrorMessage(null); }}>← Alterar escolhas</button>
+        </section>
+        <section className="premise-grid" aria-label="Premissas disponíveis">
+          {premises.options.map((premise, index) => (
+            <article className="premise-card" key={premise.id}>
+              <span className="section-number">0{index + 1}</span>
+              <h2>{premise.title}</h2>
+              <p>{premise.synopsis}</p>
+              <button className="primary-button" type="button" disabled={submitting} onClick={() => void choosePremise(premise.id)}>
+                {submitting ? "Preparando..." : "Escolher este caso"}
+              </button>
+            </article>
+          ))}
+        </section>
+        {errorMessage && <p className="form-error" role="alert">{errorMessage}</p>}
+      </main>
+    );
   }
 
   return (
@@ -220,8 +250,8 @@ export function CreateCasePage({
             {!apiAvailable
               ? "Aguardando a API"
               : submitting
-                ? "Abrindo o arquivo..."
-                : "Fabricar meu mistério"}
+                ? "Criando opções..."
+                : "Ver três premissas"}
           </button>
         </div>
       </form>
@@ -300,10 +330,6 @@ function toBriefing(form: FormState): CaseBriefing {
     difficulty: form.difficulty,
     tone: form.tone,
   };
-}
-
-function isTerminal(status: CaseGenerationStatus) {
-  return status === "ready" || status === "failed";
 }
 
 const PERIOD_OPTIONS: readonly ChoiceOption<PeriodPreset>[] = [

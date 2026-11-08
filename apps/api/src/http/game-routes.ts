@@ -7,11 +7,14 @@ import {
   apiErrorResponseSchema,
   caseIdSchema,
   createCaseRequestSchema,
+  createPremisesRequestSchema,
   submitAccusationRequestSchema,
 } from "@fabrica/contracts";
 import type { ApiErrorCode, CaseStatusResponse } from "@fabrica/contracts";
 import type { AppConfig } from "../config/index.js";
 import type { CaseRepository } from "../database/index.js";
+import type { PremiseRepository } from "../database/index.js";
+import type { PremiseGenerator } from "../generation/index.js";
 import type { CaseGenerationQueue } from "../generation/index.js";
 import type { AccusationService } from "../accusation/index.js";
 import {
@@ -21,6 +24,8 @@ import {
 
 export type GameRoutesDependencies = {
   cases: CaseRepository;
+  premises: PremiseRepository;
+  premiseGenerator: PremiseGenerator;
   generationQueue: CaseGenerationQueue;
   generationLimits: {
     maxCasesPerHour: number;
@@ -44,6 +49,24 @@ export function registerGameRoutes(
     "",
   )}`;
 
+  app.post(API_PATHS.premises, async (request, reply) => {
+    const parsed = createPremisesRequestSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return sendError(reply, 400, "invalid_request", "O briefing para criar as premissas é inválido.");
+    }
+    const now = dependencies.generationLimits.now?.() ?? new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1_000).toISOString();
+    if (dependencies.premises.countCreatedSince(oneHourAgo) >= dependencies.generationLimits.maxCasesPerHour * 3) {
+      return reply.header("Retry-After", "3600").code(429).send(apiErrorResponseSchema.parse({
+        code: "generation_limit_reached",
+        message: "O limite de premissas desta hora foi atingido. Tente novamente mais tarde.",
+      }));
+    }
+    const options = await dependencies.premiseGenerator.generate(parsed.data.briefing);
+    const set = dependencies.premises.save({ id: randomUUID(), briefing: parsed.data.briefing, options });
+    return reply.code(201).send(set);
+  });
+
   app.post(API_PATHS.cases, async (request, reply) => {
     const parsed = createCaseRequestSchema.safeParse(request.body);
     if (!parsed.success) {
@@ -53,6 +76,12 @@ export function registerGameRoutes(
         "invalid_request",
         "Os dados para criar o caso são inválidos.",
       );
+    }
+
+    const premiseSet = dependencies.premises.find(parsed.data.premiseSetId);
+    const selectedPremise = premiseSet?.options.find((option) => option.id === parsed.data.premiseId);
+    if (!premiseSet || !selectedPremise) {
+      return sendError(reply, 404, "not_found", "As premissas escolhidas não foram encontradas.");
     }
 
     const now = dependencies.generationLimits.now?.() ?? new Date();
@@ -75,10 +104,11 @@ export function registerGameRoutes(
 
     const status = dependencies.cases.createPending({
       id: randomUUID(),
-      briefing: parsed.data.briefing,
+      briefing: premiseSet.briefing,
+      premise: selectedPremise,
       createdAt: now.toISOString(),
     });
-    dependencies.generationQueue.enqueue(status.caseId, parsed.data.briefing);
+    dependencies.generationQueue.enqueue(status.caseId, premiseSet.briefing, selectedPremise);
 
     return reply.code(202).send(status satisfies CaseStatusResponse);
   });
@@ -157,7 +187,10 @@ export function registerGameRoutes(
       }
       if (!dependencies.cases.findStatus(caseId)) return caseNotFound(reply);
 
-      const outcome = dependencies.accusations.findOutcome(caseId);
+      const playerId = parsePlayerId(request.headers["x-player-id"]);
+      if (!playerId) return sendError(reply, 400, "invalid_request", "Identificação de jogador inválida.");
+
+      const outcome = dependencies.accusations.findOutcome(caseId, playerId);
       if (!outcome) {
         return sendError(
           reply,
@@ -193,6 +226,9 @@ export function registerGameRoutes(
         );
       }
 
+      const playerId = parsePlayerId(request.headers["x-player-id"]);
+      if (!playerId) return sendError(reply, 400, "invalid_request", "Identificação de jogador inválida.");
+
       const status = dependencies.cases.findStatus(caseId);
       if (!status) return caseNotFound(reply);
       if (status.status !== "ready") {
@@ -205,7 +241,7 @@ export function registerGameRoutes(
       }
 
       try {
-        const outcome = dependencies.accusations.submit(caseId, parsed.data);
+        const outcome = dependencies.accusations.submit(caseId, playerId, parsed.data);
         return reply.code(201).send(outcome);
       } catch (error) {
         if (error instanceof AccusationAlreadyExistsError) {
@@ -213,7 +249,7 @@ export function registerGameRoutes(
             reply,
             409,
             "accusation_already_submitted",
-            "Este caso já recebeu sua única acusação.",
+            "Você já fez sua única acusação para este caso.",
           );
         }
         if (error instanceof InvalidAccusationSuspectError) {
@@ -243,7 +279,10 @@ export function registerGameRoutes(
       }
       if (!dependencies.cases.findStatus(caseId)) return caseNotFound(reply);
 
-      const reveal = dependencies.accusations.findReveal(caseId);
+      const playerId = parsePlayerId(request.headers["x-player-id"]);
+      if (!playerId) return sendError(reply, 400, "invalid_request", "Identificação de jogador inválida.");
+
+      const reveal = dependencies.accusations.findReveal(caseId, playerId);
       if (!reveal) {
         return sendError(
           reply,
@@ -306,6 +345,12 @@ export function registerGameRoutes(
 }
 
 function parseCaseId(value: string) {
+  const parsed = caseIdSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
+function parsePlayerId(value: string | string[] | undefined) {
+  if (typeof value !== "string") return null;
   const parsed = caseIdSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
 }

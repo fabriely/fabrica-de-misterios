@@ -90,8 +90,10 @@ function createMockOutput(
   return {
     publicCase: {
       briefing: request.briefing,
-      title: "O segredo das 21h10",
-      synopsis: `${crimeDescriptions[request.briefing.crimeType]} Todos apresentam álibis aparentemente sólidos.`,
+      title: request.premise?.title ?? "O segredo das 21h10",
+      synopsis: request.premise
+        ? `${request.premise.synopsis} ${crimeDescriptions[request.briefing.crimeType]}`
+        : `${crimeDescriptions[request.briefing.crimeType]} Todos apresentam álibis aparentemente sólidos.`,
       incident: `O incidente ocorreu em ${request.briefing.setting}, entre 21h e 21h20.`,
       suspects,
       documents,

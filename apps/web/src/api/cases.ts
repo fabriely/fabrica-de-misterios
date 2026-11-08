@@ -5,6 +5,8 @@ import {
   accusationResultSchema,
   caseStatusResponseSchema,
   createCaseRequestSchema,
+  createPremisesRequestSchema,
+  premiseSetSchema,
   publicCaseSchema,
   submitAccusationRequestSchema,
 } from "@fabrica/contracts";
@@ -13,6 +15,8 @@ import type {
   AccusationOutcome,
   AccusationResult,
   CreateCaseRequest,
+  CreatePremisesRequest,
+  PremiseSet,
   SubmitAccusationRequest,
   PublicCase,
 } from "@fabrica/contracts";
@@ -25,6 +29,18 @@ export class PublicApiError extends Error {
     super(message);
     this.name = "PublicApiError";
   }
+}
+
+let volatilePlayerId: string | null = null;
+
+export async function createPremises(request: CreatePremisesRequest, signal?: AbortSignal): Promise<PremiseSet> {
+  const response = await fetch(API_PATHS.premises, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(createPremisesRequestSchema.parse(request)),
+    signal: signal ?? null,
+  });
+  return premiseSetSchema.parse(await parseApiBody(response));
 }
 
 export async function createCase(
@@ -50,10 +66,7 @@ export async function waitForCase(
 
   while (true) {
     await delay(intervalMs, options.signal);
-    const response = await fetch(API_PATHS.caseStatus(caseId), {
-      signal: options.signal ?? null,
-    });
-    const status = await parseStatusResponse(response);
+    const status = await getCaseStatus(caseId, options.signal);
     onStatus(status);
 
     if (status.status === "ready") return status;
@@ -64,6 +77,11 @@ export async function waitForCase(
       );
     }
   }
+}
+
+export async function getCaseStatus(caseId: string, signal?: AbortSignal): Promise<CaseStatusResponse> {
+  const response = await fetch(API_PATHS.caseStatus(caseId), { signal: signal ?? null });
+  return parseStatusResponse(response);
 }
 
 export async function getCase(
@@ -83,6 +101,7 @@ export async function getAccusation(
 ): Promise<AccusationOutcome | null> {
   const response = await fetch(API_PATHS.accusation(caseId), {
     signal: signal ?? null,
+    headers: playerHeaders(),
   });
   if (response.status === 404) return null;
   const body = await parseApiBody(response);
@@ -97,7 +116,7 @@ export async function submitAccusation(
   const payload = submitAccusationRequestSchema.parse(request);
   const response = await fetch(API_PATHS.accusation(caseId), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...playerHeaders() },
     body: JSON.stringify(payload),
     signal: signal ?? null,
   });
@@ -111,9 +130,28 @@ export async function getReveal(
 ): Promise<AccusationResult> {
   const response = await fetch(API_PATHS.reveal(caseId), {
     signal: signal ?? null,
+    headers: playerHeaders(),
   });
   const body = await parseApiBody(response);
   return accusationResultSchema.parse(body);
+}
+
+function playerHeaders() {
+  const key = "fabrica_player_id";
+  let id: string;
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored && /^[0-9a-f-]{36}$/i.test(stored)) {
+      id = stored;
+    } else {
+      id = volatilePlayerId ?? crypto.randomUUID();
+      localStorage.setItem(key, id);
+    }
+  } catch {
+    id = volatilePlayerId ?? crypto.randomUUID();
+  }
+  volatilePlayerId = id;
+  return { "X-Player-Id": id };
 }
 
 async function parseStatusResponse(response: Response) {

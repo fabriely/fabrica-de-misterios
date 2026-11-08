@@ -3,6 +3,7 @@ import { initialMigration } from "./migrations/001-initial.js";
 import { generationMetadataMigration } from "./migrations/002-generation-metadata.js";
 import { imageMetadataMigration } from "./migrations/003-image-metadata.js";
 import { accusationEvidenceMigration } from "./migrations/004-accusation-evidence.js";
+import { premisesAndPlayersMigration } from "./migrations/005-premises-and-players.js";
 
 export type Migration = {
   version: number;
@@ -15,6 +16,7 @@ const migrations: Migration[] = [
   generationMetadataMigration,
   imageMetadataMigration,
   accusationEvidenceMigration,
+  premisesAndPlayersMigration,
 ];
 
 export function runMigrations(database: Database.Database): number {

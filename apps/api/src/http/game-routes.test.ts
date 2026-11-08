@@ -9,6 +9,7 @@ import type { AppConfig } from "../config/index.js";
 import {
   AccusationRepository,
   CaseRepository,
+  PremiseRepository,
   openDatabase,
 } from "../database/index.js";
 import { AccusationService } from "../accusation/index.js";
@@ -17,6 +18,7 @@ import {
   CaseTextGenerationService,
   DefaultCaseGenerationWorkflow,
   MockCaseGenerator,
+  MockPremiseGenerator,
 } from "../generation/index.js";
 import {
   CaseImageGenerationService,
@@ -25,6 +27,8 @@ import {
 } from "../image/index.js";
 
 const PENDING_CASE_ID = "a9eb6fac-f14b-4190-a637-aae9c36b8444";
+const PREMISE_SET_ID = "bb605bfc-f63b-4242-b0d8-8190ff25c3ef";
+const PLAYER_ID = "bd73b2e1-ccfb-4af4-82b4-b20d6400cdb2";
 const databases: Database.Database[] = [];
 const directories: string[] = [];
 const apps: Array<ReturnType<typeof buildApp>> = [];
@@ -42,6 +46,29 @@ afterEach(async () => {
 });
 
 describe("public game API", () => {
+  it("offers three premise options before creating a case", async () => {
+    const context = await createGameContext();
+    const response = await context.app.inject({
+      method: "POST",
+      url: API_PATHS.premises,
+      payload: { briefing: validBriefing() },
+    });
+    expect(response.statusCode).toBe(201);
+    expect(response.json().options).toHaveLength(3);
+    expect(response.body).not.toContain("culpritId");
+    expect(response.body).not.toContain("privateSolution");
+    expect(context.cases.countCreatedSince("2000-01-01T00:00:00.000Z")).toBe(0);
+    const selected = await context.app.inject({
+      method: "POST",
+      url: API_PATHS.cases,
+      payload: { premiseSetId: response.json().id, premiseId: "premise_2" },
+    });
+    expect(selected.statusCode).toBe(202);
+    await context.queue.drain();
+    const dossier = await context.app.inject({ method: "GET", url: API_PATHS.case(selected.json().caseId) });
+    expect(dossier.json().title).toBe(response.json().options[1].title);
+  });
+
   it("completes the MVP journey from creation to the final reveal", async () => {
     const context = await createGameContext();
 
@@ -76,7 +103,7 @@ describe("public game API", () => {
     expect(dossier.statusCode).toBe(200);
     expect(dossier.json()).toMatchObject({
       id: caseId,
-      briefing: validCreateCaseRequest().briefing,
+      briefing: validBriefing(),
       suspects: expect.arrayContaining([
         expect.objectContaining({ id: "suspect_1" }),
       ]),
@@ -97,6 +124,7 @@ describe("public game API", () => {
     const accusation = await context.app.inject({
       method: "POST",
       url: API_PATHS.accusation(caseId),
+      headers: { "X-Player-Id": PLAYER_ID },
       payload: { suspectName: "Helena Prado" },
     });
     expect(accusation.statusCode).toBe(201);
@@ -111,6 +139,7 @@ describe("public game API", () => {
     const reveal = await context.app.inject({
       method: "GET",
       url: API_PATHS.reveal(caseId),
+      headers: { "X-Player-Id": PLAYER_ID },
     });
     expect(reveal.statusCode).toBe(200);
     expect(reveal.json()).toMatchObject({
@@ -124,6 +153,7 @@ describe("public game API", () => {
     const secondAttempt = await context.app.inject({
       method: "POST",
       url: API_PATHS.accusation(caseId),
+      headers: { "X-Player-Id": PLAYER_ID },
       payload: { suspectName: "Otávio Leme" },
     });
     expect(secondAttempt.statusCode).toBe(409);
@@ -133,10 +163,10 @@ describe("public game API", () => {
     const context = await createGameContext();
     const invalid = await context.app.inject({
       method: "POST",
-      url: API_PATHS.cases,
+      url: API_PATHS.premises,
       payload: {
         briefing: {
-          ...validCreateCaseRequest().briefing,
+          ...validBriefing(),
           period: "custom",
           customPeriod: null,
         },
@@ -144,10 +174,7 @@ describe("public game API", () => {
     });
 
     expect(invalid.statusCode).toBe(400);
-    expect(invalid.json()).toEqual({
-      code: "invalid_request",
-      message: "Os dados para criar o caso são inválidos.",
-    });
+    expect(invalid.json()).toMatchObject({ code: "invalid_request" });
     expect(context.cases.countCreatedSince("2000-01-01T00:00:00.000Z")).toBe(0);
   });
 
@@ -182,7 +209,7 @@ describe("public game API", () => {
     const context = await createGameContext();
     context.cases.createPending({
       id: PENDING_CASE_ID,
-      briefing: validCreateCaseRequest().briefing,
+      briefing: validBriefing(),
     });
 
     const invalid = await context.app.inject({
@@ -232,6 +259,7 @@ describe("public game API", () => {
     const prematureReveal = await context.app.inject({
       method: "GET",
       url: API_PATHS.reveal(caseId),
+      headers: { "X-Player-Id": PLAYER_ID },
     });
     expect(prematureReveal.statusCode).toBe(403);
     expect(prematureReveal.json()).toMatchObject({
@@ -241,6 +269,7 @@ describe("public game API", () => {
     const accusation = await context.app.inject({
       method: "POST",
       url: API_PATHS.accusation(caseId),
+      headers: { "X-Player-Id": PLAYER_ID },
       payload: { suspectName: "  helena prado  " },
     });
 
@@ -256,12 +285,14 @@ describe("public game API", () => {
     const persisted = await context.app.inject({
       method: "GET",
       url: API_PATHS.accusation(caseId),
+      headers: { "X-Player-Id": PLAYER_ID },
     });
     expect(persisted.json()).toEqual(accusation.json());
 
     const reveal = await context.app.inject({
       method: "GET",
       url: API_PATHS.reveal(caseId),
+      headers: { "X-Player-Id": PLAYER_ID },
     });
     expect(reveal.statusCode).toBe(200);
     expect(reveal.json()).toMatchObject({
@@ -276,6 +307,7 @@ describe("public game API", () => {
     const secondAttempt = await context.app.inject({
       method: "POST",
       url: API_PATHS.accusation(caseId),
+      headers: { "X-Player-Id": PLAYER_ID },
       payload: { suspectName: "Otávio Leme" },
     });
     expect(secondAttempt.statusCode).toBe(409);
@@ -297,6 +329,7 @@ describe("public game API", () => {
     const invalid = await context.app.inject({
       method: "POST",
       url: API_PATHS.accusation(caseId),
+      headers: { "X-Player-Id": PLAYER_ID },
       payload: { suspectName: "Pessoa inexistente" },
     });
     expect(invalid.statusCode).toBe(400);
@@ -304,6 +337,7 @@ describe("public game API", () => {
     const accusation = await context.app.inject({
       method: "POST",
       url: API_PATHS.accusation(caseId),
+      headers: { "X-Player-Id": PLAYER_ID },
       payload: { suspectName: "Otávio Leme" },
     });
 
@@ -329,11 +363,13 @@ describe("public game API", () => {
       context.app.inject({
         method: "POST",
         url: API_PATHS.accusation(caseId),
+      headers: { "X-Player-Id": PLAYER_ID },
         payload: { suspectName: "Helena Prado" },
       }),
       context.app.inject({
         method: "POST",
         url: API_PATHS.accusation(caseId),
+      headers: { "X-Player-Id": PLAYER_ID },
         payload: { suspectName: "Otávio Leme" },
       }),
     ]);
@@ -342,6 +378,34 @@ describe("public game API", () => {
       201,
       409,
     ]);
+  });
+
+  it("keeps each player's accusation and reveal independent on a shared case", async () => {
+    const context = await createGameContext();
+    const creation = await context.app.inject({ method: "POST", url: API_PATHS.cases, payload: validCreateCaseRequest() });
+    const caseId = creation.json().caseId as string;
+    await context.queue.drain();
+    const otherPlayerId = "3b7bc96a-38ec-41a3-9087-ea4b1769a4fb";
+
+    const first = await context.app.inject({
+      method: "POST", url: API_PATHS.accusation(caseId),
+      headers: { "X-Player-Id": PLAYER_ID }, payload: { suspectName: "Helena Prado" },
+    });
+    expect(first.statusCode).toBe(201);
+    const privateReveal = await context.app.inject({
+      method: "GET", url: API_PATHS.reveal(caseId), headers: { "X-Player-Id": otherPlayerId },
+    });
+    expect(privateReveal.statusCode).toBe(403);
+    const second = await context.app.inject({
+      method: "POST", url: API_PATHS.accusation(caseId),
+      headers: { "X-Player-Id": otherPlayerId }, payload: { suspectName: "Otávio Leme" },
+    });
+    expect(second.statusCode).toBe(201);
+    expect(second.json().correct).toBe(false);
+    const firstOutcome = await context.app.inject({
+      method: "GET", url: API_PATHS.accusation(caseId), headers: { "X-Player-Id": PLAYER_ID },
+    });
+    expect(firstOutcome.json().correct).toBe(true);
   });
 });
 
@@ -358,6 +422,12 @@ async function createGameContext(
     new AccusationRepository(opened.database),
   );
   const images = imagesConfig();
+  const premiseRepository = new PremiseRepository(opened.database);
+  premiseRepository.save({
+    id: PREMISE_SET_ID,
+    briefing: validBriefing(),
+    options: await new MockPremiseGenerator().generate(validBriefing()),
+  });
   const workflow = new DefaultCaseGenerationWorkflow(
     new CaseTextGenerationService(
       cases,
@@ -375,6 +445,8 @@ async function createGameContext(
   const app = buildApp({
     game: {
       cases,
+      premises: premiseRepository,
+      premiseGenerator: new MockPremiseGenerator(),
       accusations,
       generationQueue: queue,
       generationLimits: {
@@ -391,14 +463,19 @@ async function createGameContext(
 
 function validCreateCaseRequest() {
   return {
-    briefing: {
+    premiseSetId: PREMISE_SET_ID,
+    premiseId: "premise_1" as const,
+  };
+}
+
+function validBriefing() {
+  return {
       period: "victorian" as const,
       customPeriod: null,
       crimeType: "theft" as const,
       setting: "Hotel isolado nas montanhas",
       difficulty: "medium" as const,
       tone: "classic" as const,
-    },
   };
 }
 
