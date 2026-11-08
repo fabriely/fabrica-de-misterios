@@ -37,8 +37,8 @@ export const POST = handleCallback(async (message: unknown) => {
       error_message = NULL, updated_at = NOW() WHERE id = ${caseId} AND status = 'generating_image'
       AND image_claim_id = ${claimId}`;
   } catch (cause) {
-    console.error("[generation] Imagem falhou", cause instanceof Error ? cause.name : "UnknownError");
-    await sql`UPDATE cases SET status = 'failed', error_message = 'Não foi possível preparar a imagem do caso.', updated_at = NOW()
+      console.error("[generation] Imagem falhou:", cause);    
+      await sql`UPDATE cases SET status = 'failed', error_message = 'Não foi possível preparar a imagem do caso.', updated_at = NOW()
       WHERE id = ${caseId} AND status = 'generating_image' AND image_claim_id = ${claimId}`;
   }
 });
