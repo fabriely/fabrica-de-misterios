@@ -56,13 +56,31 @@ export function InvestigationPage({
   useEffect(() => {
     const controller = new AbortController();
     setLoadState({ kind: "loading" });
+    setRevealState({ kind: "idle" });
     void Promise.all([
       getCase(caseId, controller.signal),
       getAccusation(caseId, controller.signal),
     ])
-      .then(([dossier, accusation]) =>
-        setLoadState({ kind: "loaded", dossier, accusation }),
-      )
+      .then(async ([dossier, accusation]) => {
+        if (controller.signal.aborted) return;
+        setLoadState({ kind: "loaded", dossier, accusation });
+        if (!accusation) return;
+
+        setRevealState({ kind: "loading" });
+        try {
+          const reveal = await getReveal(caseId, controller.signal);
+          if (!controller.signal.aborted) setRevealState({ kind: "loaded", reveal });
+        } catch (error) {
+          if (controller.signal.aborted) return;
+          setRevealState({
+            kind: "error",
+            message:
+              error instanceof PublicApiError
+                ? error.message
+                : "Não foi possível revelar a solução.",
+          });
+        }
+      })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         setLoadState({

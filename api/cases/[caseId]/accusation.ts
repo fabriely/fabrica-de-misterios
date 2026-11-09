@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import {
-  accusationOutcomeSchema,
   accusationResultSchema,
   caseBundleSchema,
   submitAccusationRequestSchema,
 } from "@fabrica/contracts";
+import { toAccusationOutcome } from "../../_shared/accusation-outcome.js";
 import { db } from "../../_shared/db.js";
 import { body, caseIdFromRequest, error, internalError, json, playerIdFromRequest } from "../../_shared/http.js";
 
@@ -21,7 +21,7 @@ export default {
       if (request.method === "GET") {
         const rows = await sql`SELECT result_json FROM accusations WHERE case_id = ${caseId} AND player_id = ${playerId}`;
         if (!rows[0]) return error(404, "not_found", "Nenhuma acusação foi registrada para este caso.");
-        return json(accusationOutcomeSchema.parse(rows[0].result_json));
+        return json(toAccusationOutcome(accusationResultSchema.parse(rows[0].result_json)));
       }
 
       const parsed = submitAccusationRequestSchema.safeParse(await body(request));
@@ -54,7 +54,7 @@ export default {
         VALUES (${randomUUID()}, ${caseId}, ${playerId}, ${accused.name}, ${result.correct}, ${JSON.stringify(result)}::jsonb, ${submittedAt})
         ON CONFLICT (case_id, player_id) DO NOTHING RETURNING id`;
       if (!inserted[0]) return error(409, "accusation_already_submitted", "Você já fez sua única acusação para este caso.");
-      return json(accusationOutcomeSchema.parse(result), 201);
+      return json(toAccusationOutcome(result), 201);
     } catch (cause) {
       return internalError(cause);
     }
