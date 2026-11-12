@@ -10,6 +10,7 @@ import {
   privateSolutionSchema,
   publicCaseSchema,
   timestampSchema,
+  selectedPremiseSchema,
 } from "@fabrica/contracts";
 import type {
   CaseBriefing,
@@ -20,6 +21,7 @@ import type {
   GeneratedPublicCase,
   PrivateSolution,
   PublicCase,
+  SelectedPremise,
 } from "@fabrica/contracts";
 import {
   InvalidCaseStateError,
@@ -32,6 +34,7 @@ type CaseRow = {
   status: CaseGenerationStatus;
   progress: number;
   briefing_json: string;
+  selected_premise_json: string | null;
   draft_public_case_json: string | null;
   public_case_json: string | null;
   private_solution_json: string | null;
@@ -54,6 +57,7 @@ type CaseRow = {
 export type CreatePendingCaseInput = {
   id: string;
   briefing: CaseBriefing;
+  premise?: SelectedPremise;
   createdAt?: string;
 };
 
@@ -92,6 +96,7 @@ export type ImageMetadata = {
 export type QueuedCase = {
   caseId: string;
   briefing: CaseBriefing;
+  premise: SelectedPremise | null;
 };
 
 export class CaseRepository {
@@ -100,6 +105,7 @@ export class CaseRepository {
   createPending(input: CreatePendingCaseInput): CaseStatusResponse {
     const caseId = caseIdSchema.parse(input.id);
     const briefing = caseBriefingSchema.parse(input.briefing);
+    const premise = input.premise ? selectedPremiseSchema.parse(input.premise) : null;
     const createdAt = timestampSchema.parse(
       input.createdAt ?? new Date().toISOString(),
     );
@@ -113,10 +119,10 @@ export class CaseRepository {
     this.database
       .prepare(
         `INSERT INTO cases (
-          id, status, progress, briefing_json, created_at, updated_at
-        ) VALUES (?, 'queued', 0, ?, ?, ?)`,
+          id, status, progress, briefing_json, selected_premise_json, created_at, updated_at
+        ) VALUES (?, 'queued', 0, ?, ?, ?, ?)`,
       )
-      .run(caseId, JSON.stringify(briefing), createdAt, createdAt);
+      .run(caseId, JSON.stringify(briefing), premise ? JSON.stringify(premise) : null, createdAt, createdAt);
 
     return status;
   }
@@ -359,8 +365,18 @@ export class CaseRepository {
       this.database
         .prepare(
           `UPDATE cases SET
-            status = 'failed',
-            error_message = 'A geração foi interrompida por um reinício. Crie um novo caso para tentar novamente.',
+            status = 'queued',
+            progress = 0,
+            draft_public_case_json = NULL,
+            public_case_json = NULL,
+            private_solution_json = NULL,
+            image_prompt = NULL,
+            image_file_path = NULL,
+            image_provider = NULL,
+            image_model = NULL,
+            image_usage_json = NULL,
+            image_is_fallback = 0,
+            error_message = NULL,
             updated_at = ?
           WHERE status IN ('generating_case', 'generating_image')`,
         )
@@ -368,9 +384,9 @@ export class CaseRepository {
 
       const rows = this.database
         .prepare(
-          "SELECT id, briefing_json FROM cases WHERE status = 'queued' ORDER BY created_at",
+          "SELECT id, briefing_json, selected_premise_json FROM cases WHERE status = 'queued' ORDER BY created_at",
         )
-        .all() as Array<{ id: string; briefing_json: string }>;
+        .all() as Array<{ id: string; briefing_json: string; selected_premise_json: string | null }>;
 
       return rows.map((row) => ({
         caseId: caseIdSchema.parse(row.id),
@@ -380,6 +396,9 @@ export class CaseRepository {
           "briefing enfileirado",
           row.id,
         ),
+        premise: row.selected_premise_json
+          ? parseStoredJson(row.selected_premise_json, selectedPremiseSchema, "premissa escolhida", row.id)
+          : null,
       }));
     })();
   }

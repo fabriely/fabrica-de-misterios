@@ -50,7 +50,8 @@ export const caseBriefingSchema = z
 
 export const createCaseRequestSchema = z
   .object({
-    briefing: caseBriefingSchema,
+    premiseSetId: z.uuid(),
+    premiseId: z.enum(["premise_1", "premise_2", "premise_3"]),
   })
   .strict();
 

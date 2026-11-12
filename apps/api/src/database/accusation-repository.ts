@@ -13,6 +13,7 @@ import { parseStoredJson } from "./json.js";
 type AccusationRow = {
   id: string;
   case_id: string;
+  player_id: string;
   suspect_name: string;
   normalized_suspect_name: string;
   correct: 0 | 1;
@@ -40,13 +41,14 @@ export class AccusationRepository {
       this.database
         .prepare(
           `INSERT INTO accusations (
-            id, case_id, suspect_name, normalized_suspect_name,
+            id, case_id, player_id, suspect_name, normalized_suspect_name,
             correct, result_json, submitted_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           record.id,
           record.caseId,
+          record.playerId,
           record.suspectName,
           record.normalizedSuspectName,
           record.correct ? 1 : 0,
@@ -63,16 +65,17 @@ export class AccusationRepository {
     return { record, result };
   }
 
-  findByCaseId(caseId: string): StoredAccusation | null {
+  findByCaseId(caseId: string, playerId: string): StoredAccusation | null {
     const row = this.database
-      .prepare("SELECT * FROM accusations WHERE case_id = ?")
-      .get(caseId) as AccusationRow | undefined;
+      .prepare("SELECT * FROM accusations WHERE case_id = ? AND player_id = ?")
+      .get(caseId, playerId) as AccusationRow | undefined;
     if (!row) return null;
 
     return {
       record: accusationRecordSchema.parse({
         id: row.id,
         caseId: row.case_id,
+        playerId: row.player_id,
         suspectName: row.suspect_name,
         normalizedSuspectName: row.normalized_suspect_name,
         submittedAt: row.submitted_at,

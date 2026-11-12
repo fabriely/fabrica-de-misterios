@@ -78,6 +78,22 @@ describe("caseGenerationOutputSchema", () => {
     }
   });
 
+  it("requires distinct decisive evidence", () => {
+    const draft = validDraft();
+    draft.privateSolution.decisiveEvidenceIds[1] =
+      draft.privateSolution.decisiveEvidenceIds[0]!;
+
+    const result = caseGenerationOutputSchema.safeParse(draft);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((issue) =>
+        issue.path.join(".") === "privateSolution.decisiveEvidenceIds" &&
+        issue.message.includes("únicos"),
+      )).toBe(true);
+    }
+  });
+
   it("rejects duplicate public evidence identifiers", () => {
     const draft = validDraft();
     draft.publicCase.scene.visibleClues[0]!.id = "document_1";

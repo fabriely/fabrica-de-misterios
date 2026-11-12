@@ -1,4 +1,4 @@
-import type { CaseBriefing } from "@fabrica/contracts";
+import type { CaseBriefing, SelectedPremise } from "@fabrica/contracts";
 import type { AppConfig } from "../config/index.js";
 import type { CaseRepository } from "../database/index.js";
 import type { CaseGenerationResult, TextCaseGenerator } from "./types.js";
@@ -13,12 +13,14 @@ export class CaseTextGenerationService {
   async generate(
     caseId: string,
     briefing: CaseBriefing,
+    premise?: SelectedPremise | null,
   ): Promise<CaseGenerationResult> {
     this.cases.markGeneratingCase(caseId);
 
     try {
       const result = await this.generator.generate({
         briefing,
+        premise: premise ?? null,
         suspectCount: this.generationConfig.suspect_count,
         documentCount: this.generationConfig.document_count,
       });

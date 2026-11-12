@@ -210,6 +210,12 @@ function validateCaseReferences(
   );
 
   const availableEvidence = new Set(evidenceIds);
+  reportDuplicates(
+    privateSolution.decisiveEvidenceIds,
+    context,
+    [...basePath, "privateSolution", "decisiveEvidenceIds"],
+    "evidência decisiva",
+  );
   privateSolution.decisiveEvidenceIds.forEach((evidenceId, index) => {
     if (!availableEvidence.has(evidenceId)) {
       context.addIssue({

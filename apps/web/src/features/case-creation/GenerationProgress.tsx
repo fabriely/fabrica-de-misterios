@@ -34,7 +34,7 @@ export function GenerationProgress({ status }: GenerationProgressProps) {
 
         <span className="kicker">A FÁBRICA ESTÁ TRABALHANDO</span>
         <h1>Seu mistério está tomando forma</h1>
-        <p>Não feche esta janela. O dossiê será aberto assim que estiver pronto.</p>
+        <p>Você pode voltar a este link. O dossiê abrirá quando estiver pronto.</p>
 
         <div className="progress-track" aria-label={`${status.progress}% concluído`}>
           <span style={{ width: `${visibleProgress}%` }} />

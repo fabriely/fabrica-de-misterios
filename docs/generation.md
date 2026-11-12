@@ -10,7 +10,7 @@ A geração usa um provedor intercambiável definido por `generation.provider` n
 1. O caso pendente passa para `generating_case`.
 2. O provedor recebe briefing e quantidades configuradas.
 3. A saída estruturada é validada pelo schema compartilhado.
-4. Uma segunda validação confere quantidades e preservação exata do briefing.
+4. Uma segunda validação confere quantidades e preservação exata do briefing; o contrato também exige IDs distintos para as evidências decisivas.
 5. Rascunho público, solução privada, prompt visual e metadados de uso são persistidos.
 6. O caso passa para `generating_image` e o fluxo descrito em [`images.md`](images.md) prepara a cena.
 

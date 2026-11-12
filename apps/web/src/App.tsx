@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { API_PATHS } from "@fabrica/contracts/health";
 import type { HealthResponse } from "@fabrica/contracts/health";
+import type { CaseStatusResponse } from "@fabrica/contracts";
+import { getCaseStatus, PublicApiError } from "./api/cases";
 import { CreateCasePage } from "./features/case-creation/CreateCasePage";
+import { GenerationProgress } from "./features/case-creation/GenerationProgress";
 import { InvestigationPage } from "./features/investigation/InvestigationPage";
 
 type ApiState =
@@ -41,7 +44,7 @@ export function App() {
     };
   }, []);
 
-  function openInvestigation(caseId: string) {
+  function openCase(caseId: string) {
     window.history.pushState({}, "", `/cases/${caseId}`);
     setRoute({ kind: "investigation" as const, caseId });
   }
@@ -77,10 +80,10 @@ export function App() {
       {route.kind === "creation" ? (
         <CreateCasePage
           apiAvailable={apiState.kind === "online"}
-          onCaseReady={openInvestigation}
+          onCaseCreated={openCase}
         />
       ) : (
-        <InvestigationPage
+        <CaseRoutePage
           caseId={route.caseId}
           onReturnHome={returnToCreation}
         />
@@ -93,6 +96,42 @@ export function App() {
       </footer>
     </div>
   );
+}
+
+function CaseRoutePage({ caseId, onReturnHome }: { caseId: string; onReturnHome: () => void }) {
+  const [state, setState] = useState<
+    | { kind: "loading" }
+    | { kind: "status"; status: CaseStatusResponse }
+    | { kind: "error"; message: string }
+  >({ kind: "loading" });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let timer: number | undefined;
+    async function poll() {
+      try {
+        const status = await getCaseStatus(caseId, controller.signal);
+        if (controller.signal.aborted) return;
+        setState({ kind: "status", status });
+        if (status.status !== "ready" && status.status !== "failed") {
+          timer = window.setTimeout(() => void poll(), 1_000);
+        }
+      } catch (cause) {
+        if (controller.signal.aborted) return;
+        setState({ kind: "error", message: cause instanceof PublicApiError ? cause.message : "Não foi possível consultar este caso." });
+      }
+    }
+    void poll();
+    return () => { controller.abort(); if (timer !== undefined) window.clearTimeout(timer); };
+  }, [caseId]);
+
+  if (state.kind === "loading") return <main className="investigation-loading"><h1>Localizando o caso...</h1></main>;
+  if (state.kind === "error" || state.status.status === "failed") {
+    const message = state.kind === "error" ? state.message : state.status.errorMessage ?? "A geração falhou.";
+    return <main className="investigation-message-page"><section className="investigation-message"><h1>Não foi possível abrir o caso</h1><p>{message}</p><button className="primary-button" type="button" onClick={onReturnHome}>Criar outro caso</button></section></main>;
+  }
+  if (state.status.status !== "ready") return <GenerationProgress status={state.status} />;
+  return <InvestigationPage caseId={caseId} onReturnHome={onReturnHome} />;
 }
 
 type AppRoute =

@@ -16,11 +16,12 @@
     "dev:api": "npm run dev -w @fabrica/api",
     "dev:web": "npm run dev -w @fabrica/web",
     "build": "npm run build -w @fabrica/contracts && npm run build -w @fabrica/api && npm run build -w @fabrica/web",
-    "typecheck": "npm run build -w @fabrica/contracts && npm run typecheck -w @fabrica/api && npm run typecheck -w @fabrica/web",
+    "typecheck": "npm run build -w @fabrica/contracts && npm run typecheck -w @fabrica/api && npm run typecheck -w @fabrica/web && tsc -p tsconfig.vercel.json",
     "lint": "eslint .",
     "test": "npm run build -w @fabrica/contracts && vitest run",
     "test:watch": "npm run build -w @fabrica/contracts && vitest",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build"
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
+    "db:migrate:vercel": "node scripts/migrate-vercel.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -31,5 +32,20 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.4",
     "vitest": "^4.0.8"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "@vercel/blob": "^2.4.0",
+    "@vercel/queue": "^0.11.0",
+    "dotenv": "^18.0.9"
+  },
+  "overrides": {
+    "@vercel/queue": {
+      "@vercel/oidc": "^4.0.7",
+      "minimatch": "^11.0.5"
+    },
+    "@vercel/oidc": {
+      "@vercel/cli-config": "^0.3.7"
+    }
   }
 }

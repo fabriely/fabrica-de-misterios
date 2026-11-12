@@ -1,6 +1,8 @@
 export { CaseGenerationProviderError } from "./errors.js";
 export { createTextCaseGenerator } from "./factory.js";
 export { MockCaseGenerator } from "./mock-case-generator.js";
+export { MockPremiseGenerator, OpenAiPremiseGenerator, createPremiseGenerator } from "./premise-generator.js";
+export type { PremiseGenerator } from "./premise-generator.js";
 export { OpenAiCaseGenerator } from "./openai-case-generator.js";
 export {
   buildCaseUserPrompt,

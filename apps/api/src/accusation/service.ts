@@ -25,9 +25,10 @@ export class AccusationService {
 
   submit(
     caseId: string,
+    playerId: string,
     requestInput: SubmitAccusationRequest,
   ): AccusationOutcome {
-    if (this.accusations.findByCaseId(caseId)) {
+    if (this.accusations.findByCaseId(caseId, playerId)) {
       throw new AccusationAlreadyExistsError(caseId);
     }
 
@@ -69,6 +70,7 @@ export class AccusationService {
       {
         id: `accusation_${randomUUID().replaceAll("-", "")}`,
         caseId,
+        playerId,
         suspectName: accused.name,
         normalizedSuspectName: normalizeSuspectName(accused.name),
         submittedAt,
@@ -80,13 +82,13 @@ export class AccusationService {
     return toOutcome(stored.result);
   }
 
-  findOutcome(caseId: string): AccusationOutcome | null {
-    const stored = this.accusations.findByCaseId(caseId);
+  findOutcome(caseId: string, playerId: string): AccusationOutcome | null {
+    const stored = this.accusations.findByCaseId(caseId, playerId);
     return stored ? toOutcome(stored.result) : null;
   }
 
-  findReveal(caseId: string) {
-    return this.accusations.findByCaseId(caseId)?.result ?? null;
+  findReveal(caseId: string, playerId: string) {
+    return this.accusations.findByCaseId(caseId, playerId)?.result ?? null;
   }
 }
 

@@ -1,9 +1,10 @@
-import type { CaseBriefing } from "@fabrica/contracts";
+import type { CaseBriefing, SelectedPremise } from "@fabrica/contracts";
 import type { CaseGenerationWorkflow } from "./workflow.js";
 
 type QueuedGeneration = {
   caseId: string;
   briefing: CaseBriefing;
+  premise?: SelectedPremise | null;
 };
 
 export class CaseGenerationQueue {
@@ -21,8 +22,8 @@ export class CaseGenerationQueue {
     }
   }
 
-  enqueue(caseId: string, briefing: CaseBriefing): void {
-    this.pending.push({ caseId, briefing });
+  enqueue(caseId: string, briefing: CaseBriefing, premise?: SelectedPremise | null): void {
+    this.pending.push({ caseId, briefing, premise: premise ?? null });
     this.pump();
   }
 
@@ -48,7 +49,7 @@ export class CaseGenerationQueue {
       this.activeJobs += 1;
       void Promise.resolve()
         .then(() =>
-          this.workflow.generate(generation.caseId, generation.briefing),
+          this.workflow.generate(generation.caseId, generation.briefing, generation.premise),
         )
         .catch(() => {
           try {

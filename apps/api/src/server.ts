@@ -17,12 +17,14 @@ import {
 } from "./image/index.js";
 import { AccusationService } from "./accusation/index.js";
 import { AccusationRepository } from "./database/index.js";
+import { PremiseRepository } from "./database/index.js";
+import { createPremiseGenerator } from "./generation/index.js";
 
 let storage: OpenDatabaseResult | undefined;
 const projectRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
 try {
-  const config = await loadConfig({ cwd: projectRoot });
+  const config = await loadConfig({ cwd: projectRoot, fallbackFilename: "config.example.toml" });
   storage = openDatabase({
     filename: config.database.path,
     baseDirectory: projectRoot,
@@ -60,12 +62,14 @@ try {
   }, config.generation.max_concurrent_generations);
   const recoveredCases = cases.recoverAfterRestart();
   for (const recovered of recoveredCases) {
-    generationQueue.enqueue(recovered.caseId, recovered.briefing);
+    generationQueue.enqueue(recovered.caseId, recovered.briefing, recovered.premise);
   }
   const app = buildApp({
     bodyLimitBytes: config.server.body_limit_kb * 1_024,
     game: {
       cases,
+      premises: new PremiseRepository(storage.database),
+      premiseGenerator: createPremiseGenerator(config),
       accusations,
       generationQueue,
       generationLimits: {

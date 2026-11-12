@@ -29,6 +29,14 @@ export type {
   MysteryTone,
   PeriodPreset,
 } from "./briefing.js";
+export {
+  createPremisesRequestSchema,
+  premiseOptionSchema,
+  premiseOptionsSchema,
+  premiseSetSchema,
+  selectedPremiseSchema,
+} from "./premise.js";
+export type { CreatePremisesRequest, PremiseOption, PremiseSet, SelectedPremise } from "./premise.js";
 
 export {
   caseBundleSchema,

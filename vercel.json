@@ -1,0 +1,24 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "apps/web/dist",
+  "functions": {
+    "api/queue-text.ts": {
+      "maxDuration": 60,
+      "experimentalTriggers": [{ "type": "queue/v2beta", "topic": "case-text" }]
+    },
+    "api/queue-image.ts": {
+      "maxDuration": 60,
+      "experimentalTriggers": [{ "type": "queue/v2beta", "topic": "case-image" }]
+    },
+    "api/premises.ts": { "maxDuration": 60 }
+  },
+  "rewrites": [
+    { "source": "/api/cases/:caseId/status", "destination": "/api/cases/[caseId]/status" },
+    { "source": "/api/cases/:caseId/accusation", "destination": "/api/cases/[caseId]/accusation" },
+    { "source": "/api/cases/:caseId/reveal", "destination": "/api/cases/[caseId]/reveal" },
+    { "source": "/api/cases/:caseId", "destination": "/api/cases/[caseId]/index" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
