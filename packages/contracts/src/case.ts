@@ -83,6 +83,7 @@ export const publicCaseSchema = generatedPublicCaseSchema
     id: caseIdSchema,
     createdAt: timestampSchema,
     scene: publicSceneSchema,
+    portraitSheetUrl: z.string().trim().min(1).max(500).optional(),
   })
   .strict();
 

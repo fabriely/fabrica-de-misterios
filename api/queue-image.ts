@@ -3,7 +3,7 @@ import { handleCallback } from "@vercel/queue";
 import { put } from "@vercel/blob";
 import { caseBundleSchema, caseIdSchema, generatedPublicCaseSchema, privateSolutionSchema, publicCaseSchema } from "@fabrica/contracts";
 import { db } from "./_shared/db.js";
-import { generateImage } from "./_shared/generation.js";
+import { generateImage, generatePortraitSheet } from "./_shared/generation.js";
 
 export const POST = handleCallback(async (message: unknown) => {
   const caseId = caseIdSchema.parse((message as { caseId?: unknown }).caseId);
@@ -22,15 +22,24 @@ export const POST = handleCallback(async (message: unknown) => {
   try {
     const draft = generatedPublicCaseSchema.parse(row.draft_public_case_json);
     const solution = privateSolutionSchema.parse(row.private_solution_json);
-    const image = await generateImage(caseId, String(row.image_prompt), draft.scene.imageAlt);
-    const blob = await put(`cases/${caseId}/${randomUUID()}.${image.extension}`, Buffer.from(image.bytes), {
-      access: "public", contentType: image.mediaType,
-    });
+    const [sceneImage, portraitsImage] = await Promise.all([
+      generateImage(caseId, String(row.image_prompt), draft.scene.imageAlt),
+      generatePortraitSheet(caseId, draft.briefing, draft.suspects),
+    ]);
+    const [sceneBlob, portraitsBlob] = await Promise.all([
+      put(`cases/${caseId}/scene-${randomUUID()}.${sceneImage.extension}`, Buffer.from(sceneImage.bytes), {
+        access: "public", contentType: sceneImage.mediaType,
+      }),
+      put(`cases/${caseId}/portraits-${randomUUID()}.${portraitsImage.extension}`, Buffer.from(portraitsImage.bytes), {
+        access: "public", contentType: portraitsImage.mediaType,
+      }),
+    ]);
     const publicCase = publicCaseSchema.parse({
       ...draft,
       id: caseId,
       createdAt: new Date(row.created_at as string).toISOString(),
-      scene: { ...draft.scene, imageUrl: blob.url },
+      portraitSheetUrl: portraitsBlob.url,
+      scene: { ...draft.scene, imageUrl: sceneBlob.url },
     });
     caseBundleSchema.parse({ publicCase, privateSolution: solution });
     await sql`UPDATE cases SET status = 'ready', progress = 100, public_case_json = ${JSON.stringify(publicCase)}::jsonb,

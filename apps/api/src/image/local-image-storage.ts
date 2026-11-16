@@ -16,11 +16,11 @@ export class LocalImageStorage implements ImageStorage {
     this.publicPath = `/${config.public_path.replace(/^\/+|\/+$/g, "")}`;
   }
 
-  async save(caseIdInput: string, image: GeneratedImage): Promise<StoredImage> {
+  async save(caseIdInput: string, image: GeneratedImage, kind: "scene" | "portraits" = "scene"): Promise<StoredImage> {
     const caseId = caseIdSchema.parse(caseIdInput);
     await mkdir(this.directory, { recursive: true });
 
-    const filename = `${caseId}.${image.extension}`;
+    const filename = `${caseId}${kind === "portraits" ? "-portraits" : ""}.${image.extension}`;
     const filePath = path.join(this.directory, filename);
     const temporaryPath = path.join(
       this.directory,

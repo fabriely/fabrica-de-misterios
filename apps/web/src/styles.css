@@ -1186,8 +1186,8 @@ h2 {
 
 .suspect-photo {
   display: grid;
-  width: 58px;
-  height: 65px;
+  width: 128px;
+  height: 145px;
   place-items: center;
   border: 4px solid #d9cfb8;
   color: #d5c498;
@@ -1195,6 +1195,11 @@ h2 {
   font-family: Georgia, serif;
   box-shadow: 2px 4px 9px #0006;
   transform: rotate(-2deg);
+}
+
+.suspect-photo.has-portrait,
+.culprit-portrait.has-portrait {
+  background-repeat: no-repeat;
 }
 
 .suspect-number {

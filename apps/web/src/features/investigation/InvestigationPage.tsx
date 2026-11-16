@@ -22,6 +22,7 @@ import {
   periodLabels,
   toneLabels,
 } from "./labels";
+import { portraitSheetStyle } from "./portraits";
 
 type InvestigationPageProps = {
   caseId: string;
@@ -257,6 +258,7 @@ export function InvestigationPage({
       {selectedDocument && (
         <DocumentDialog
           document={selectedDocument}
+          number={dossier.documents.findIndex((document) => document.id === selectedDocument.id) + 1}
           onClose={() => setSelectedDocument(null)}
         />
       )}
@@ -394,7 +396,13 @@ function Suspects({ dossier }: { dossier: PublicCase }) {
         {dossier.suspects.map((suspect, index) => (
           <article className="suspect-card" key={suspect.id}>
             <header>
-              <span className="suspect-photo" aria-hidden="true">{initials(suspect.name)}</span>
+              <span
+                className={`suspect-photo${dossier.portraitSheetUrl ? " has-portrait" : ""}`}
+                style={portraitSheetStyle(dossier, index)}
+                aria-hidden="true"
+              >
+                {dossier.portraitSheetUrl ? null : initials(suspect.name)}
+              </span>
               <span className="suspect-number">SUSPEITO {String(index + 1).padStart(2, "0")}</span>
             </header>
             <h3>{suspect.name}</h3>

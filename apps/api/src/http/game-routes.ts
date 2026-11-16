@@ -299,18 +299,27 @@ export function registerGameRoutes(
     `${publicPath}/:filename`,
     async (request, reply) => {
       const match = request.params.filename.match(
-        /^([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.(png|webp|jpeg|svg)$/i,
+        /^([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(-portraits)?\.(png|webp|jpeg|svg)$/i,
       );
       const caseId = match?.[1];
-      const extension = match?.[2]?.toLowerCase();
+      const isPortraitSheet = Boolean(match?.[2]);
+      const extension = match?.[3]?.toLowerCase();
       if (!caseId || !extension || !parseCaseId(caseId)) {
         return imageNotFound(reply);
       }
 
-      const metadata = dependencies.cases.findImageMetadata(caseId);
-      if (!metadata) return imageNotFound(reply);
-
-      const resolvedFile = path.resolve(metadata.filePath);
+      let resolvedFile: string;
+      if (isPortraitSheet) {
+        const dossier = dependencies.cases.findPublicCase(caseId);
+        if (dossier?.portraitSheetUrl !== `${publicPath}/${request.params.filename}`) {
+          return imageNotFound(reply);
+        }
+        resolvedFile = path.resolve(imagesDirectory, request.params.filename);
+      } else {
+        const metadata = dependencies.cases.findImageMetadata(caseId);
+        if (!metadata) return imageNotFound(reply);
+        resolvedFile = path.resolve(metadata.filePath);
+      }
       const relativePath = path.relative(imagesDirectory, resolvedFile);
       if (
         relativePath.startsWith("..") ||

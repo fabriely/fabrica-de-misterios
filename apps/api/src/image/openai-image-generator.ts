@@ -34,9 +34,12 @@ export class OpenAiImageGenerator implements CaseImageGenerator {
   }
 
   async generate(request: ImageGenerationRequest): Promise<GeneratedImage> {
+    const visualRules = request.purpose === "portrait_sheet"
+      ? "Sem textos, legendas, marcas d'água ou qualquer indicação de culpa."
+      : "Sem textos, legendas, marcas d'água ou o rosto do culpado em destaque.";
     const response = await this.client.images.generate({
       model: this.config.image_model,
-      prompt: `${request.prompt}\n\nSem textos, legendas, marcas d'água ou o rosto do culpado em destaque.`,
+      prompt: `${request.prompt}\n\n${visualRules}`,
       n: 1,
       size: this.config.size,
       quality: this.config.image_quality,
