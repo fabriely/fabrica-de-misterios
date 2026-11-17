@@ -12,6 +12,10 @@
       "maxDuration": 60,
       "experimentalTriggers": [{ "type": "queue/v2beta", "topic": "case-image" }]
     },
+    "api/queue-image-review.ts": {
+      "maxDuration": 60,
+      "experimentalTriggers": [{ "type": "queue/v2beta", "topic": "case-image-review" }]
+    },
     "api/premises.ts": { "maxDuration": 60 }
   },
   "rewrites": [

@@ -12,6 +12,7 @@ workspace "Fábrica de Mistérios" "Publicação na Vercel com Neon, Blob e Queu
                 gerador = component "Gerador de casos" "Solicita um caso estruturado com dossiê público, solução privada e especificação visual da cena." "TypeScript + Structured Outputs"
                 validador = component "Validador estrutural" "Confere esquema, IDs, referências, quantidades e evidências decisivas públicas; a coerência narrativa precisa de testes com pessoas." "TypeScript + Zod"
                 visual = component "Gerador visual" "Solicita uma cena a partir da especificação aprovada e conserva as pistas verificáveis no dossiê." "TypeScript + API de imagens"
+                juizVisual = component "Juiz visual" "Inspeciona a imagem da cena, pede uma correção se houver defeito grave e aprova ou usa imagem reserva." "TypeScript + visão + Structured Outputs"
                 repositorio = component "Repositório de casos" "Expõe só o dossiê público e mantém solução e acusações por jogador no servidor." "TypeScript + SQL"
                 veredito = component "Avaliador de acusação" "Compara suspeito e evidências com a solução privada e só então devolve a explicação." "TypeScript"
             }
@@ -24,16 +25,16 @@ workspace "Fábrica de Mistérios" "Publicação na Vercel com Neon, Blob e Queu
             }
         }
 
-        openai = softwareSystem "OpenAI API" "Serviço externo para geração estruturada de texto e geração de imagens."
-        fila = softwareSystem "Vercel Queues" "Executa a geração de texto e imagem em etapas assíncronas duráveis."
+        openai = softwareSystem "OpenAI API" "Serviço externo para geração estruturada de texto, imagens e revisão visual."
+        fila = softwareSystem "Vercel Queues" "Executa a geração de texto, imagem e revisão visual em etapas assíncronas duráveis."
 
         jogador -> web "Configura, investiga e acusa" "HTTPS"
         web -> api "Envia briefing e acusação; recebe premissas, dossiê público e veredito" "JSON/HTTPS"
         api -> banco "Lê e grava dados do caso" "PostgreSQL/TCP"
         api -> midia "Grava e lê imagens do caso" "HTTPS"
-        api -> openai "Solicita texto estruturado e imagem" "HTTPS"
+        api -> openai "Solicita texto estruturado, imagem e revisão visual" "HTTPS"
         api -> fila "Publica etapas de geração" "HTTPS"
-        fila -> api "Aciona consumidores privados de texto e imagem" "HTTPS"
+        fila -> api "Aciona consumidores privados de texto, imagem e revisão" "HTTPS"
 
         web -> premissas "Solicita premissas sem spoilers" "JSON/HTTPS"
         web -> instrucoes "Envia briefing e premissa escolhida" "JSON/HTTPS"
@@ -48,7 +49,10 @@ workspace "Fábrica de Mistérios" "Publicação na Vercel com Neon, Blob e Queu
         validador -> visual "Envia especificação visual do caso aprovado"
         visual -> openai "Gera imagem da cena" "HTTPS"
         visual -> midia "Armazena imagem" "HTTPS"
-        visual -> repositorio "Vincula imagem ao caso"
+        visual -> juizVisual "Entrega a cena candidata"
+        juizVisual -> openai "Inspeciona a imagem e devolve parecer estruturado" "HTTPS"
+        juizVisual -> visual "Pede nova cena com correções, no máximo uma vez"
+        juizVisual -> repositorio "Vincula a cena aprovada ou imagem reserva ao caso"
         repositorio -> banco "Persiste e consulta o caso" "PostgreSQL/TCP"
         veredito -> repositorio "Lê solução privada e registra veredito"
     }
@@ -62,7 +66,7 @@ workspace "Fábrica de Mistérios" "Publicação na Vercel com Neon, Blob e Queu
 
         component api "api-components" {
             title "API de Orquestração — Componentes da criação do caso"
-            include web premissas instrucoes gerador validador visual repositorio veredito banco midia openai
+            include web premissas instrucoes gerador validador visual juizVisual repositorio veredito banco midia openai
             autoLayout lr
         }
 

@@ -35,8 +35,8 @@ export class OpenAiImageGenerator implements CaseImageGenerator {
 
   async generate(request: ImageGenerationRequest): Promise<GeneratedImage> {
     const visualRules = request.purpose === "portrait_sheet"
-      ? "Sem textos, legendas, marcas d'água ou qualquer indicação de culpa."
-      : "Sem textos, legendas, marcas d'água ou o rosto do culpado em destaque.";
+      ? "Retratos de adultos com anatomia, escala e enquadramento coerentes em todos os painéis. Sem textos, legendas, marcas d'água ou qualquer indicação de culpa."
+      : "Anatomia humana realista, pessoas proporcionais aos móveis e ao cômodo, perspectiva consistente. Se houver cama, a pessoa adulta deve caber naturalmente nela. Sem membros duplicados, textos, legendas, marcas d'água ou o rosto do culpado em destaque.";
     const response = await this.client.images.generate({
       model: this.config.image_model,
       prompt: `${request.prompt}\n\n${visualRules}`,

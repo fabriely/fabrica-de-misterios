@@ -12,11 +12,14 @@ const steps: Array<{
   { status: "queued", label: "Abrindo o arquivo", detail: "Organizando seu briefing" },
   { status: "generating_case", label: "Escrevendo o mistério", detail: "Criando suspeitos e documentos" },
   { status: "generating_image", label: "Revelando a cena", detail: "Preparando a imagem e as pistas" },
+  { status: "generating_image", label: "Conferindo a cena", detail: "Revisando proporções e detalhes visuais" },
   { status: "ready", label: "Caso pronto", detail: "Lacrando o dossiê" },
 ];
 
 export function GenerationProgress({ status }: GenerationProgressProps) {
-  const currentIndex = steps.findIndex((step) => step.status === status.status);
+  const currentIndex = status.status === "generating_image" && status.progress >= 85
+    ? 3
+    : steps.findIndex((step) => step.status === status.status);
   const visibleProgress = Math.max(status.progress, 4);
 
   return (
@@ -45,7 +48,7 @@ export function GenerationProgress({ status }: GenerationProgressProps) {
           {steps.map((step, index) => {
             const state = index < currentIndex ? "done" : index === currentIndex ? "active" : "waiting";
             return (
-              <li className={`step-${state}`} key={step.status}>
+              <li className={`step-${state}`} key={step.label}>
                 <span>{state === "done" ? "✓" : index + 1}</span>
                 <div>
                   <strong>{step.label}</strong>

@@ -14,6 +14,7 @@ import {
   CaseImageGenerationService,
   LocalImageStorage,
   createCaseImageGenerator,
+  OpenAiVisualJudge,
 } from "./image/index.js";
 import { AccusationService } from "./accusation/index.js";
 import { AccusationRepository } from "./database/index.js";
@@ -44,6 +45,13 @@ try {
     createCaseImageGenerator(config),
     new LocalImageStorage(config.images, projectRoot),
     config.images,
+    config.generation.provider === "openai"
+      ? new OpenAiVisualJudge({
+          apiKey: config.openai.api_key,
+          model: process.env.OPENAI_VISUAL_JUDGE_MODEL ?? "gpt-6.1-terra",
+          timeoutSeconds: config.openai.timeout_seconds,
+        })
+      : undefined,
   );
   const workflow = new DefaultCaseGenerationWorkflow(
     textGeneration,

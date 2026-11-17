@@ -34,12 +34,28 @@ await sql.query(`CREATE TABLE IF NOT EXISTS cases (
   image_claimed_at TIMESTAMPTZ,
   generation_claim_id UUID,
   image_claim_id UUID,
+  image_review_state TEXT NOT NULL DEFAULT 'pending',
+  image_retry_count INTEGER NOT NULL DEFAULT 0,
+  candidate_scene_url TEXT,
+  candidate_portraits_url TEXT,
+  image_review_feedback TEXT,
+  image_review_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+  image_review_claim_id UUID,
+  image_review_claimed_at TIMESTAMPTZ,
   error_message TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 )`);
 await sql.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS generation_claim_id UUID`);
 await sql.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS image_claim_id UUID`);
+await sql.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS image_review_state TEXT NOT NULL DEFAULT 'pending'`);
+await sql.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS image_retry_count INTEGER NOT NULL DEFAULT 0`);
+await sql.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS candidate_scene_url TEXT`);
+await sql.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS candidate_portraits_url TEXT`);
+await sql.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS image_review_feedback TEXT`);
+await sql.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS image_review_json JSONB NOT NULL DEFAULT '[]'::jsonb`);
+await sql.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS image_review_claim_id UUID`);
+await sql.query(`ALTER TABLE cases ADD COLUMN IF NOT EXISTS image_review_claimed_at TIMESTAMPTZ`);
 await sql.query(`CREATE INDEX IF NOT EXISTS cases_created_at_idx ON cases(created_at)`);
 
 await sql.query(`CREATE TABLE IF NOT EXISTS accusations (

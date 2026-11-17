@@ -6,6 +6,7 @@ export {
   type CaseImageGenerationResult,
 } from "./service.js";
 export { SvgImageGenerator } from "./svg-image-generator.js";
+export { OpenAiVisualJudge } from "./visual-judge.js";
 export type {
   CaseImageGenerator,
   GeneratedImage,

@@ -2,6 +2,8 @@ import type { AppConfig } from "../config/index.js";
 import type { CaseRepository } from "../database/index.js";
 import { SvgImageGenerator } from "./svg-image-generator.js";
 import { portraitSheetRequest } from "./portrait-sheet.js";
+import { imageDataUrl, promptWithVisualCorrections, reviewPassed } from "./visual-judge.js";
+import type { VisualJudge, VisualReviewResult } from "./visual-judge.js";
 import type {
   CaseImageGenerator,
   GeneratedImage,
@@ -24,6 +26,7 @@ export class CaseImageGenerationService {
     private readonly generator: CaseImageGenerator,
     private readonly storage: ImageStorage,
     private readonly imagesConfig: Pick<AppConfig["images"], "fallback_enabled">,
+    private readonly visualJudge?: VisualJudge,
   ) {}
 
   async generate(caseId: string): Promise<CaseImageGenerationResult> {
@@ -40,10 +43,32 @@ export class CaseImageGenerationService {
     const portraitsRequest = portraitSheetRequest(caseId, draft.publicCase.briefing, draft.publicCase.suspects);
 
     try {
-      const [scene, portraits] = await Promise.all([
+      const [initialScene, portraits] = await Promise.all([
         this.generateWithFallback(sceneRequest),
         this.generateWithFallback(portraitsRequest),
       ]);
+      let scene = initialScene;
+      if (scene.image.metadata.provider === "openai" && this.visualJudge) {
+        try {
+          const firstReview = await this.reviewScene(scene.image, draft.publicCase, draft.imagePrompt);
+          if (!reviewPassed(firstReview.review)) {
+            scene = await this.generateWithFallback({
+              ...sceneRequest,
+              prompt: promptWithVisualCorrections(draft.imagePrompt, firstReview.review),
+            });
+            if (scene.image.metadata.provider === "openai") {
+              const secondReview = await this.reviewScene(scene.image, draft.publicCase, draft.imagePrompt);
+              if (!reviewPassed(secondReview.review)) {
+                if (!this.imagesConfig.fallback_enabled) throw new Error("A cena foi reprovada na revisão visual.");
+                scene = { image: await this.fallbackGenerator.generate(sceneRequest), isFallback: true };
+              }
+            }
+          }
+        } catch {
+          if (!this.imagesConfig.fallback_enabled) throw new Error("Não foi possível aprovar a imagem da cena.");
+          scene = { image: await this.fallbackGenerator.generate(sceneRequest), isFallback: true };
+        }
+      }
       const [storedScene, storedPortraits] = await Promise.all([
         this.storage.save(caseId, scene.image),
         this.storage.save(caseId, portraits.image, "portraits"),
@@ -86,5 +111,9 @@ export class CaseImageGenerationService {
       if (!this.imagesConfig.fallback_enabled) throw error;
       return { image: await this.fallbackGenerator.generate(request), isFallback: true };
     }
+  }
+
+  private reviewScene(image: GeneratedImage, draft: NonNullable<ReturnType<CaseRepository["findGenerationDraft"]>>["publicCase"], imagePrompt: string): Promise<VisualReviewResult> {
+    return this.visualJudge!.review({ imageUrl: imageDataUrl(image.bytes, image.mediaType), draft, imagePrompt });
   }
 }

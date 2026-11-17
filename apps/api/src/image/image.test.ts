@@ -12,6 +12,8 @@ import { OpenAiImageGenerator } from "./openai-image-generator.js";
 import { CaseImageGenerationService } from "./service.js";
 import { SvgImageGenerator } from "./svg-image-generator.js";
 import type { CaseImageGenerator } from "./types.js";
+import { OpenAiVisualJudge, reviewPassed } from "./visual-judge.js";
+import type { VisualJudge, VisualReview } from "./visual-judge.js";
 
 const CASE_ID = "d819d84d-35d4-4e70-812a-47b8126f724b";
 const databases: Database.Database[] = [];
@@ -84,6 +86,34 @@ describe("OpenAiImageGenerator", () => {
 
     expect(generate.mock.calls[0]?.[0].prompt).toContain("Sem textos, legendas");
     expect(generate.mock.calls[0]?.[0].prompt).not.toContain("rosto do culpado");
+  });
+});
+
+describe("OpenAiVisualJudge", () => {
+  it("reviews the actual scene image and reports visible scale defects", async () => {
+    const repository = await preparedRepository();
+    const draft = repository.findGenerationDraft(CASE_ID)!;
+    const parse = vi.fn().mockResolvedValue({
+      status: "completed", output_parsed: majorScaleIssue(),
+      model: "test-vision", id: "test-response",
+      usage: { input_tokens: 12, output_tokens: 8, total_tokens: 20 },
+    });
+    const client = { responses: { parse } } as unknown as Pick<OpenAI, "responses">;
+    const judge = new OpenAiVisualJudge(
+      { apiKey: "sk-test", model: "test-vision", timeoutSeconds: 42 }, client,
+    );
+
+    const result = await judge.review({
+      imageUrl: "data:image/png;base64,YWJj", draft: draft.publicCase, imagePrompt: draft.imagePrompt,
+    });
+
+    expect(parse).toHaveBeenCalledOnce();
+    expect(parse.mock.calls[0]?.[0].input[0].content).toContainEqual({
+      type: "input_image", image_url: "data:image/png;base64,YWJj", detail: "original",
+    });
+    expect(parse.mock.calls[0]?.[0].instructions).toContain("pessoa adulta cabe naturalmente na cama");
+    expect(reviewPassed(result.review)).toBe(false);
+    expect(result.usage.totalTokens).toBe(20);
   });
 });
 
@@ -182,6 +212,95 @@ describe("CaseImageGenerationService", () => {
       .toContain("Imagem indisponível");
   });
 
+  it("regenerates a scene with the judge's corrections and publishes only the approved image", async () => {
+    const repository = await preparedRepository();
+    const directory = await createTemporaryDirectory();
+    const generate = vi.fn(async (request: Parameters<CaseImageGenerator["generate"]>[0]) => {
+      const base = await new SvgImageGenerator().generate(request);
+      return { ...base, bytes: Buffer.from(request.prompt), metadata: { ...base.metadata, provider: "openai" as const } };
+    });
+    const review = vi.fn()
+      .mockResolvedValueOnce(judgeResult(majorScaleIssue()))
+      .mockResolvedValueOnce(judgeResult(cleanReview()));
+    const service = new CaseImageGenerationService(
+      repository,
+      { generate },
+      new LocalImageStorage(imagesConfig(), directory),
+      imagesConfig(),
+      { review } as VisualJudge,
+    );
+
+    const result = await service.generate(CASE_ID);
+
+    expect(generate).toHaveBeenCalledTimes(3);
+    expect(review).toHaveBeenCalledTimes(2);
+    expect(review.mock.calls[0]?.[0].imageUrl).toMatch(/^data:image\/svg\+xml;base64,/);
+    expect(generate.mock.calls[2]?.[0].prompt).toContain("a pessoa é grande demais para a cama");
+    expect(result.isFallback).toBe(false);
+    expect(repository.findStatus(CASE_ID)?.status).toBe("ready");
+    expect(await readFile(repository.findImageMetadata(CASE_ID)!.filePath, "utf8"))
+      .toContain("a pessoa é grande demais para a cama");
+  });
+
+  it("publishes a neutral fallback if the second scene still has a major defect", async () => {
+    const repository = await preparedRepository();
+    const directory = await createTemporaryDirectory();
+    const generate = vi.fn(async (request: Parameters<CaseImageGenerator["generate"]>[0]) => {
+      const base = await new SvgImageGenerator().generate(request);
+      return { ...base, metadata: { ...base.metadata, provider: "openai" as const } };
+    });
+    const review = vi.fn().mockResolvedValue(judgeResult(majorScaleIssue()));
+    const service = new CaseImageGenerationService(
+      repository, { generate }, new LocalImageStorage(imagesConfig(), directory),
+      imagesConfig(), { review } as VisualJudge,
+    );
+
+    const result = await service.generate(CASE_ID);
+
+    expect(review).toHaveBeenCalledTimes(2);
+    expect(result.isFallback).toBe(true);
+    expect(repository.findImageMetadata(CASE_ID)).toMatchObject({ provider: "fallback", isFallback: true });
+    expect(repository.findStatus(CASE_ID)?.status).toBe("ready");
+  });
+
+  it("publishes a neutral fallback when the visual review service is unavailable", async () => {
+    const repository = await preparedRepository();
+    const directory = await createTemporaryDirectory();
+    const generate = vi.fn(async (request: Parameters<CaseImageGenerator["generate"]>[0]) => {
+      const base = await new SvgImageGenerator().generate(request);
+      return { ...base, metadata: { ...base.metadata, provider: "openai" as const } };
+    });
+    const review = vi.fn().mockRejectedValue(new Error("rate limited"));
+    const service = new CaseImageGenerationService(
+      repository, { generate }, new LocalImageStorage(imagesConfig(), directory),
+      imagesConfig(), { review } as VisualJudge,
+    );
+
+    const result = await service.generate(CASE_ID);
+
+    expect(review).toHaveBeenCalledOnce();
+    expect(result.isFallback).toBe(true);
+    expect(repository.findImageMetadata(CASE_ID)).toMatchObject({ provider: "fallback", isFallback: true });
+    expect(repository.findStatus(CASE_ID)?.status).toBe("ready");
+  });
+
+  it("fails the case when visual fallback is disabled and the judge is unavailable", async () => {
+    const repository = await preparedRepository();
+    const directory = await createTemporaryDirectory();
+    const generate = vi.fn(async (request: Parameters<CaseImageGenerator["generate"]>[0]) => {
+      const base = await new SvgImageGenerator().generate(request);
+      return { ...base, metadata: { ...base.metadata, provider: "openai" as const } };
+    });
+    const review = vi.fn().mockRejectedValue(new Error("rate limited"));
+    const service = new CaseImageGenerationService(
+      repository, { generate }, new LocalImageStorage(imagesConfig(), directory),
+      { fallback_enabled: false }, { review } as VisualJudge,
+    );
+
+    await expect(service.generate(CASE_ID)).rejects.toThrow("Não foi possível aprovar a imagem da cena.");
+    expect(repository.findStatus(CASE_ID)?.status).toBe("failed");
+  });
+
   it("fails generically when fallback is disabled", async () => {
     const repository = await preparedRepository();
     const directory = await createTemporaryDirectory();
@@ -202,6 +321,25 @@ describe("CaseImageGenerationService", () => {
     });
   });
 });
+
+function majorScaleIssue(): VisualReview {
+  return {
+    summary: "Escala incorreta.",
+    issues: [{ category: "scale", severity: "major", explanation: "a pessoa é grande demais para a cama" }],
+    repairInstructions: "Redimensione a pessoa em relação à cama.",
+  };
+}
+
+function cleanReview(): VisualReview {
+  return { summary: "Cena coerente.", issues: [], repairInstructions: "" };
+}
+
+function judgeResult(review: VisualReview) {
+  return {
+    review, model: "test-vision", responseId: "test-response",
+    usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+  };
+}
 
 async function preparedRepository() {
   const opened = openDatabase({ filename: ":memory:" });
