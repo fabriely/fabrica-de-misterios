@@ -5,7 +5,7 @@ type AccusationDialogProps = {
   suspects: Suspect[];
   submitting: boolean;
   errorMessage: string | null;
-  onSubmit: (suspectName: string) => void;
+  onSubmit: (suspectId: string, argument: string) => void;
   onClose: () => void;
 };
 
@@ -17,7 +17,13 @@ export function AccusationDialog({
   onClose,
 }: AccusationDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [argument, setArgument] = useState("");
+
+  function submitReport() {
+    if (!selectedId) return;
+    onSubmit(selectedId, argument.trim());
+  }
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -64,9 +70,9 @@ export function AccusationDialog({
               <input
                 type="radio"
                 name="accused-suspect"
-                value={suspect.name}
-                checked={selectedName === suspect.name}
-                onChange={() => setSelectedName(suspect.name)}
+                value={suspect.id}
+                checked={selectedId === suspect.id}
+                onChange={() => setSelectedId(suspect.id)}
                 disabled={submitting}
               />
               <span className="accusation-option-number">{String(index + 1).padStart(2, "0")}</span>
@@ -76,6 +82,23 @@ export function AccusationDialog({
           ))}
         </fieldset>
 
+        <details className="accusation-extra">
+          <summary>Desafio extra: explique seu palpite <span>opcional</span></summary>
+          <div className="accusation-extra-content">
+            <label htmlFor="accusation-argument">O que fez você suspeitar dessa pessoa?</label>
+            <p id="accusation-argument-hint">Pode citar uma pista, um motivo ou uma oportunidade. O jurado de IA avalia só o que você escrever; deixar em branco não gera nota.</p>
+            <textarea
+              id="accusation-argument"
+              aria-describedby="accusation-argument-hint"
+              maxLength={1200}
+              rows={4}
+              value={argument}
+              onChange={(event) => setArgument(event.target.value)}
+              disabled={submitting}
+              placeholder="Ex.: o álibi não combina com o horário do registro..."
+            />
+          </div>
+        </details>
         <div className="single-chance-warning">
           <strong>Uma única chance</strong>
           <span>Esta decisão será registrada permanentemente.</span>
@@ -86,10 +109,10 @@ export function AccusationDialog({
         <button
           className="confirm-accusation"
           type="button"
-          disabled={!selectedName || submitting}
-          onClick={() => selectedName && onSubmit(selectedName)}
+          disabled={!selectedId || submitting}
+          onClick={submitReport}
         >
-          {submitting ? "Registrando acusação..." : `Confirmar${selectedName ? `: ${selectedName}` : " acusação"}`}
+          {submitting ? "Registrando acusação..." : `Confirmar acusação`}
         </button>
       </section>
     </dialog>

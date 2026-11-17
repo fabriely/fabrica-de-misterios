@@ -31,10 +31,14 @@ export function generationConfig(): AppConfig {
 }
 
 export async function generatePremises(briefing: CaseBriefing) {
+  return (await generatePremisesDetailed(briefing)).options;
+}
+
+export async function generatePremisesDetailed(briefing: CaseBriefing) {
   const config = generationConfig();
   return config.generation.provider === "mock"
-    ? new MockPremiseGenerator().generate(briefing)
-    : new OpenAiPremiseGenerator(config.openai).generate(briefing);
+    ? { options: await new MockPremiseGenerator().generate(briefing), usage: {inputTokens:null,outputTokens:null,totalTokens:null}, provider:"mock" as const, model:"mock-premises" }
+    : { ...(await new OpenAiPremiseGenerator(config.openai).generateDetailed(briefing)), provider:"openai" as const };
 }
 
 export async function generateCase(briefing: CaseBriefing, premise: { id: "premise_1" | "premise_2" | "premise_3"; title: string; synopsis: string }) {

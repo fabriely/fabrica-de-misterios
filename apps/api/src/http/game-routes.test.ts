@@ -9,10 +9,11 @@ import type { AppConfig } from "../config/index.js";
 import {
   AccusationRepository,
   CaseRepository,
-  PremiseRepository,
+  PremiseRepository, InsightsRepository,
   openDatabase,
 } from "../database/index.js";
 import { AccusationService } from "../accusation/index.js";
+import { IntelligenceServices } from "../ai/services.js";
 import {
   CaseGenerationQueue,
   CaseTextGenerationService,
@@ -144,6 +145,12 @@ describe("public game API", () => {
     });
     expect(accusation.body).not.toContain("culpritId");
     expect(accusation.body).not.toContain("motive");
+
+    const byId = await context.app.inject({
+      method: "POST", url: API_PATHS.accusation(caseId),headers:{"X-Player-Id": PLAYER_ID},
+      payload:{suspectId:"suspect_1", argument:"O álibi contradiz o registro de acesso."},
+    });
+    expect(byId.statusCode).toBe(409); // A tentativa já foi consumida.
 
     const reveal = await context.app.inject({
       method: "GET",
@@ -325,6 +332,50 @@ describe("public game API", () => {
     });
   });
 
+  it("registra custo/tempo/qualidade e julga a acusação por ID com texto livre",async()=>{
+    const context=await createGameContext();
+    const creation=await context.app.inject({method:"POST",url:API_PATHS.cases,payload:validCreateCaseRequest()});
+    const caseId=creation.json().caseId as string;
+    await context.queue.drain();
+    const metrics=await context.app.inject({method:"GET",url:API_PATHS.insights(caseId)});
+    expect(metrics.statusCode).toBe(200);
+    expect(metrics.json().quality.totalScore).toBe(68);
+    expect(metrics.json().operations.some((op:{stage:string})=>op.stage==="case_text")).toBe(true);
+    expect(metrics.body).not.toContain("culpritId");
+    const unauthorized=await context.app.inject({method:"GET",url:API_PATHS.judgment(caseId),headers:{"X-Player-Id":PLAYER_ID}});
+    expect(unauthorized.statusCode).toBe(403);
+    const accusation=await context.app.inject({method:"POST",url:API_PATHS.accusation(caseId),
+      headers:{"X-Player-Id":PLAYER_ID}, payload:{suspectId:"suspect_1",argument:"O registro de acesso contradiz o depoimento do responsável."}});
+    expect(accusation.statusCode).toBe(201);
+    const judgment=await context.app.inject({method:"GET",url:API_PATHS.judgment(caseId),headers:{"X-Player-Id":PLAYER_ID}});
+    expect(judgment.statusCode).toBe(200);
+    expect(judgment.json()).toMatchObject({correct:true,totalScore:35,provider:"mock"});
+    expect(judgment.body).not.toContain("privateSolution");
+    const repeated=await context.app.inject({method:"POST",url:API_PATHS.judgment(caseId),headers:{"X-Player-Id":PLAYER_ID}});
+    expect(repeated.json()).toEqual(judgment.json());
+  });
+
+  it("permite acusar sem justificativa e não chama o jurado", async () => {
+    const context = await createGameContext();
+    const creation = await context.app.inject({ method: "POST", url: API_PATHS.cases, payload: validCreateCaseRequest() });
+    const caseId = creation.json().caseId as string;
+    await context.queue.drain();
+
+    const accusation = await context.app.inject({ method: "POST", url: API_PATHS.accusation(caseId),
+      headers: { "X-Player-Id": PLAYER_ID }, payload: { suspectId: "suspect_1" } });
+    expect(accusation.statusCode).toBe(201);
+    expect(accusation.json()).toMatchObject({ correct: true });
+
+    const judgment = await context.app.inject({ method: "GET", url: API_PATHS.judgment(caseId), headers: { "X-Player-Id": PLAYER_ID } });
+    expect(judgment.statusCode).toBe(200);
+    expect(judgment.json()).toMatchObject({ status: "skipped", scores: null, totalScore: null });
+
+    const repeated = await context.app.inject({ method: "POST", url: API_PATHS.judgment(caseId), headers: { "X-Player-Id": PLAYER_ID } });
+    expect(repeated.json()).toEqual(judgment.json());
+    const insights = await context.app.inject({ method: "GET", url: API_PATHS.insights(caseId) });
+    expect(insights.json().operations.some((op: { stage: string }) => op.stage === "accusation_judgment")).toBe(false);
+  });
+
   it("records an incorrect accusation without revealing the culprit", async () => {
     const context = await createGameContext();
     const creation = await context.app.inject({
@@ -430,6 +481,9 @@ async function createGameContext(
     cases,
     new AccusationRepository(opened.database),
   );
+  const insights = new InsightsRepository(opened.database);
+  const intelligence = new IntelligenceServices(cases,new AccusationRepository(opened.database),insights,{provider:"mock",model:"mock"});
+  const meter = (op: Parameters<typeof insights.record>[0]) => insights.record(op);
   const images = imagesConfig();
   const premiseRepository = new PremiseRepository(opened.database);
   premiseRepository.save({
@@ -442,13 +496,17 @@ async function createGameContext(
       cases,
       new MockCaseGenerator(),
       generationConfig(),
+      meter,
     ),
     new CaseImageGenerationService(
       cases,
       new SvgImageGenerator(),
       new LocalImageStorage(images, directory),
       images,
+      undefined,
+      meter,
     ),
+    (caseId)=>intelligence.reviewQuality(caseId),
   );
   const queue = new CaseGenerationQueue(workflow);
   const app = buildApp({
@@ -457,6 +515,7 @@ async function createGameContext(
       premises: premiseRepository,
       premiseGenerator: new MockPremiseGenerator(),
       accusations,
+      insights, intelligence,
       generationQueue: queue,
       generationLimits: {
         maxCasesPerHour: options.maxCasesPerHour ?? 5,

@@ -3,12 +3,12 @@ import type {
   AccusationOutcome,
   AccusationResult,
   CaseDocument,
-  PublicCase,
+  PublicCase, Judgment, CaseInsights,
 } from "@fabrica/contracts";
 import {
   getAccusation,
   getCase,
-  getReveal,
+  getReveal, getJudgment, getInsights,
   PublicApiError,
   submitAccusation,
 } from "../../api/cases";
@@ -53,34 +53,29 @@ export function InvestigationPage({
     | { kind: "error"; message: string }
   >({ kind: "idle" });
   const [reloadKey, setReloadKey] = useState(0);
+  const [insights, setInsights] = useState<CaseInsights | null>(null);
+  const [judgment, setJudgment] = useState<Judgment | null>(null);
+  const [judgmentLoaded, setJudgmentLoaded] = useState(false);
+  const [judgmentBusy, setJudgmentBusy] = useState(false);
+  const [judgmentError, setJudgmentError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
     setLoadState({ kind: "loading" });
     setRevealState({ kind: "idle" });
+    setInsights(null); setJudgment(null); setJudgmentLoaded(false); setJudgmentError(null);
     void Promise.all([
       getCase(caseId, controller.signal),
       getAccusation(caseId, controller.signal),
     ])
-      .then(async ([dossier, accusation]) => {
+      .then(([dossier, accusation]) => {
         if (controller.signal.aborted) return;
         setLoadState({ kind: "loaded", dossier, accusation });
-        if (!accusation) return;
-
-        setRevealState({ kind: "loading" });
-        try {
-          const reveal = await getReveal(caseId, controller.signal);
-          if (!controller.signal.aborted) setRevealState({ kind: "loaded", reveal });
-        } catch (error) {
-          if (controller.signal.aborted) return;
-          setRevealState({
-            kind: "error",
-            message:
-              error instanceof PublicApiError
-                ? error.message
-                : "Não foi possível revelar a solução.",
-          });
-        }
+        void getInsights(caseId).then((info)=> {if (!controller.signal.aborted) setInsights(info);}).catch(()=>{});
+        if (accusation) void getJudgment(caseId)
+          .then((value)=>{if(!controller.signal.aborted) setJudgment(value);})
+          .catch(()=>{})
+          .finally(()=>{if(!controller.signal.aborted) setJudgmentLoaded(true);});
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
@@ -94,6 +89,16 @@ export function InvestigationPage({
       });
     return () => controller.abort();
   }, [caseId, reloadKey]);
+
+  useEffect(() => {
+    if (loadState.kind !== "loaded" || insights?.quality) return;
+    let ticks=0;
+    const timer=window.setInterval(()=>{
+      if (++ticks > 18) {window.clearInterval(timer);return;}
+      void getInsights(caseId).then(setInsights).catch(()=>{});
+    },5000);
+    return ()=>window.clearInterval(timer);
+  },[caseId,loadState.kind,insights?.quality]);
 
   if (loadState.kind === "loading") {
     return <InvestigationLoading />;
@@ -143,11 +148,14 @@ export function InvestigationPage({
     }
   }
 
-  async function accuse(suspectName: string) {
+  async function accuse(suspectId: string, argument: string) {
     setAccusationSubmitting(true);
     setAccusationError(null);
+    setJudgmentLoaded(false);
     try {
-      const accusation = await submitAccusation(caseId, { suspectName });
+      const accusation = await submitAccusation(caseId, { suspectId, argument });
+      void getJudgment(caseId).then(setJudgment).catch(()=>{}).finally(()=>setJudgmentLoaded(true));
+      void getInsights(caseId).then(setInsights).catch(()=>{});
       setLoadState({ kind: "loaded", dossier, accusation });
       setAccusationOpen(false);
     } catch (error) {
@@ -157,6 +165,7 @@ export function InvestigationPage({
           if (accusation) {
             setLoadState({ kind: "loaded", dossier, accusation });
             setAccusationOpen(false);
+            void getJudgment(caseId).then(setJudgment).catch(()=>{}).finally(()=>setJudgmentLoaded(true));
             return;
           }
         } catch {
@@ -224,6 +233,7 @@ export function InvestigationPage({
       </nav>
 
       {view === "overview" && <Overview dossier={dossier} />}
+      {view === "overview" && insights && <InsightsPanel data={insights} />}
       {view === "suspects" && <Suspects dossier={dossier} />}
       {view === "documents" && (
         <Documents dossier={dossier} onOpen={setSelectedDocument} />
@@ -234,6 +244,15 @@ export function InvestigationPage({
           outcome={loadState.accusation}
           revealState={revealState}
           onReveal={() => void revealCase()}
+          judgment={judgment}
+          judgmentLoaded={judgmentLoaded}
+          judgmentBusy={judgmentBusy}
+          judgmentError={judgmentError}
+          onRetryJudgment={() => {
+            setJudgmentError(null); setJudgmentBusy(true);
+            void getJudgment(caseId,true).then((value)=>{setJudgment(value);return getInsights(caseId);})
+              .then(setInsights).catch((error:unknown)=>setJudgmentError(error instanceof PublicApiError ? error.message : "Não foi possível consultar o jurado.")).finally(()=>setJudgmentBusy(false));
+          }}
         />
       ) : (
         <section className="accusation-preview">
@@ -267,7 +286,7 @@ export function InvestigationPage({
           suspects={dossier.suspects}
           submitting={accusationSubmitting}
           errorMessage={accusationError}
-          onSubmit={(suspectName) => void accuse(suspectName)}
+          onSubmit={(suspectId, argument) => void accuse(suspectId, argument)}
           onClose={() => setAccusationOpen(false)}
         />
       )}
@@ -278,30 +297,62 @@ export function InvestigationPage({
 function AccusationOutcomeCard({
   outcome,
   revealState,
-  onReveal,
+  onReveal, judgment, judgmentLoaded, onRetryJudgment, judgmentBusy, judgmentError,
 }: {
   outcome: AccusationOutcome;
   revealState: { kind: "idle" } | { kind: "loading" } | { kind: "error"; message: string };
   onReveal: () => void;
+  judgment: Judgment | null;
+  judgmentLoaded: boolean;
+  judgmentBusy: boolean;
+  judgmentError: string | null;
+  onRetryJudgment: () => void;
 }) {
   return (
     <section className={`accusation-outcome ${outcome.correct ? "correct" : "incorrect"}`}>
-      <span className="outcome-mark" aria-hidden="true">{outcome.correct ? "✓" : "×"}</span>
-      <div>
-        <span className="kicker">ACUSAÇÃO REGISTRADA</span>
-        <h2>{outcome.correct ? "Você identificou o culpado" : "Sua acusação estava incorreta"}</h2>
-        <p>
-          Você acusou <strong>{outcome.accusedName}</strong>. Esta foi a única
-          tentativa permitida para o caso.
-        </p>
+      <header className="outcome-header">
+        <span className="outcome-mark" aria-hidden="true">{outcome.correct ? "✓" : "×"}</span>
+        <div className="outcome-heading">
+          <span className="kicker">ACUSAÇÃO REGISTRADA</span>
+          <h2>{outcome.correct ? "Você identificou o culpado" : "Sua acusação estava incorreta"}</h2>
+          <p>Você acusou <strong>{outcome.accusedName}</strong>. Esta foi a única tentativa permitida para o caso.</p>
+        </div>
+        <time className="outcome-time" dateTime={outcome.submittedAt}>
+          {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(outcome.submittedAt))}
+        </time>
+      </header>
+      {!judgment && judgmentLoaded && <section className="judgment-panel">
+        <span className="kicker">JURADO DE IA</span>
+        <h3>Julgamento ainda não disponível</h3>
+        <p>A acusação está registrada. Caso o julgamento tenha sido interrompido, você pode retomá-lo sem consumir uma nova tentativa.</p>
+        <button type="button" className="secondary-button" onClick={onRetryJudgment} disabled={judgmentBusy}>
+          {judgmentBusy ? "Avaliando..." : "Consultar / retomar julgamento"}
+        </button>
+      </section>}
+      {judgment && judgment.status !== "skipped" && <section className="judgment-panel">
+        <span className="kicker">JURADO DE IA · {judgment.provider === "mock" ? "SIMULAÇÃO" : judgment.model}</span>
+        <h3>{judgment.status === "completed" ? "Sua explicação" : "Avaliação pendente de recuperação"}</h3>
+        {judgment.scores && judgment.provider !== "mock" && <>
+          <p className="judgment-score">{Object.values(judgment.scores).reduce((sum, value) => sum + value, 0)}/65 pontos na justificativa</p>
+          <p className="judgment-score-note">O acerto do suspeito aparece acima. Esta nota considera apenas como você explicou sua hipótese.</p>
+        </>}
+        <p>{judgment.feedback}</p>
+        {judgment.scores && judgment.provider !== "mock" && <dl className="judgment-breakdown">
+          <div><dt>Provas</dt><dd>{judgment.scores.evidence}/30</dd></div>
+          <div><dt>Motivo</dt><dd>{judgment.scores.motive}/15</dd></div>
+          <div><dt>Método</dt><dd>{judgment.scores.method}/10</dd></div>
+          <div><dt>Cronologia</dt><dd>{judgment.scores.chronology}/10</dd></div>
+        </dl>}
+        {judgment.shortcomings.length > 0 && <ul>{judgment.shortcomings.map((note,i)=><li key={i}>{note}</li>)}</ul>}
+        {judgment.status === "failed" && <button type="button" className="secondary-button" disabled={judgmentBusy} onClick={onRetryJudgment}>{judgmentBusy ? "Avaliando..." : "Tentar julgamento novamente"}</button>}
+      </section>}
+      {judgmentError && <p className="accusation-error" role="alert">{judgmentError}</p>}
+      <div className="outcome-actions">
+        {revealState.kind === "error" && <p className="reveal-error" role="alert">{revealState.message}</p>}
+        <button className="reveal-button" type="button" onClick={onReveal} disabled={revealState.kind === "loading"}>
+          {revealState.kind === "loading" ? "Abrindo solução..." : "Revelar a verdade"}
+        </button>
       </div>
-      <span className="outcome-time">
-        {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(outcome.submittedAt))}
-      </span>
-      <button className="reveal-button" type="button" onClick={onReveal} disabled={revealState.kind === "loading"}>
-        {revealState.kind === "loading" ? "Abrindo solução..." : "Revelar a verdade"}
-      </button>
-      {revealState.kind === "error" && <p className="reveal-error" role="alert">{revealState.message}</p>}
     </section>
   );
 }
@@ -473,4 +524,22 @@ function readNotes(key: string) {
   } catch {
     return "";
   }
+}
+
+function InsightsPanel({data}: {data:CaseInsights}) {
+  const costs = data.operations.filter(op=>op.estimatedCostUsd !== null);
+  const known = costs.reduce((sum,op)=>sum+(op.estimatedCostUsd ?? 0),0);
+  return <section className="insights-panel" aria-label="Métricas de geração do mistério">
+    <span className="kicker">OBSERVABILIDADE DO CASO</span><h2>Custo, tempo e qualidade</h2>
+    <div className="insights-stats">
+      <div><strong>{data.generationWallMs == null ? "Em andamento" : `${(data.generationWallMs/1000).toLocaleString("pt-BR",{maximumFractionDigits:2})} s`}</strong><span>Tempo total de geração do caso</span></div>
+      <div><strong>{(data.totalDurationMs/1000).toLocaleString("pt-BR",{maximumFractionDigits:2})} s</strong><span>Soma das latências de todas as operações</span></div>
+      <div><strong>{data.operations.length===0 ? "Não medido" : `US$ ${known.toFixed(5)}`}</strong><span>{data.hasUnpricedOperations ? "Custo parcial ou indisponível (operações sem preço)" : "Custo total estimado"}</span></div>
+      <div><strong>{data.quality?.totalScore == null ? "Não disponível" : `${data.quality.totalScore}/100`}</strong><span>Qualidade estimada · {data.quality?.evaluator ?? "aguardando"}</span></div>
+    </div>
+    <div className="insights-scroll"><table className="insights-operation-table"><thead><tr><th>Etapa</th><th>Modelo</th><th>Tempo</th><th>Tokens</th><th>Estimativa US$</th></tr></thead><tbody>
+      {data.operations.map(op=><tr key={op.id}><td>{op.stage} {op.status === "failed" ? "(falha)" : ""}</td><td>{op.model}{op.isFallback ? " (fallback)" : ""}</td><td>{(op.durationMs/1000).toFixed(2)} s</td><td>{op.totalTokens ?? "—"}</td><td>{op.estimatedCostUsd?.toFixed(5) ?? "Não precificado"}</td></tr>)}
+    </tbody></table></div>
+    <small>Estimativas em USD dependem dos preços informados no servidor; não representam faturamento. Uma avaliação automática não comprova a qualidade narrativa.</small>
+  </section>;
 }

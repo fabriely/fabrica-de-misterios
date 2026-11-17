@@ -10,10 +10,12 @@ export class DefaultCaseGenerationWorkflow implements CaseGenerationWorkflow {
   constructor(
     private readonly textGeneration: CaseTextGenerationService,
     private readonly imageGeneration: CaseImageGenerationService,
+    private readonly review?: (caseId: string) => Promise<void>,
   ) {}
 
   async generate(caseId: string, briefing: CaseBriefing, premise?: SelectedPremise | null): Promise<void> {
     await this.textGeneration.generate(caseId, briefing, premise);
     await this.imageGeneration.generate(caseId);
+    await this.review?.(caseId);
   }
 }

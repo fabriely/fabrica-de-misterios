@@ -5,6 +5,8 @@ import { imageMetadataMigration } from "./migrations/003-image-metadata.js";
 import { accusationEvidenceMigration } from "./migrations/004-accusation-evidence.js";
 import { premisesAndPlayersMigration } from "./migrations/005-premises-and-players.js";
 
+import { insightsAndJuryMigration } from "./migrations/006-insights-and-jury.js";
+
 export type Migration = {
   version: number;
   name: string;
@@ -17,6 +19,7 @@ const migrations: Migration[] = [
   imageMetadataMigration,
   accusationEvidenceMigration,
   premisesAndPlayersMigration,
+  insightsAndJuryMigration,
 ];
 
 export function runMigrations(database: Database.Database): number {

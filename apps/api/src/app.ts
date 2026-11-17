@@ -37,6 +37,15 @@ export function buildApp(dependencies: AppDependencies = {}) {
 
   app.setErrorHandler(async (error, request, reply) => {
     const statusCode = getErrorStatusCode(error);
+    // Preserve the upstream OpenAI 429 without exposing request/secret details.
+    if (statusCode === 429) {
+      return reply.code(429).send(
+        apiErrorResponseSchema.parse({
+          code: "generation_limit_reached",
+          message: "A OpenAI recusou a geração (HTTP 429). Verifique créditos, faturamento e limites de uso da API; tente novamente após resolver a restrição.",
+        }),
+      );
+    }
     if (statusCode === 400 || statusCode === 413) {
       return reply.code(statusCode).send(
         apiErrorResponseSchema.parse({
@@ -85,6 +94,15 @@ function getErrorStatusCode(error: unknown) {
     typeof error.statusCode === "number"
   ) {
     return error.statusCode;
+  }
+  // OpenAI SDK uses `status` instead of Fastify's `statusCode`.
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    typeof error.status === "number"
+  ) {
+    return error.status;
   }
   return null;
 }

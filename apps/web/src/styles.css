@@ -1403,7 +1403,7 @@ h2 {
 }
 
 .accusation-dialog {
-  width: min(620px, calc(100% - 30px));
+  width: min(720px, calc(100% - 30px));
   max-height: calc(100vh - 30px);
   padding: 0;
   overflow: auto;
@@ -1581,10 +1581,9 @@ h2 {
 }
 
 .accusation-outcome {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 24px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
   padding: 34px 38px;
   border: 1px solid #536157;
   background: #18231d;
@@ -1598,6 +1597,17 @@ h2 {
 .accusation-outcome.incorrect {
   border-color: #795149;
   background: #2a1d1a;
+}
+
+.outcome-header {
+  display: grid;
+  grid-template-columns: 57px minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: start;
+}
+
+.outcome-heading {
+  min-width: 0;
 }
 
 .outcome-mark {
@@ -1617,16 +1627,17 @@ h2 {
 }
 
 .accusation-outcome h2 {
-  margin: 7px 0 7px;
+  margin: 7px 0 9px;
   color: #eee4d2;
-  font-size: 1.4rem;
+  font-size: clamp(1.4rem, 2.2vw, 1.9rem);
   font-weight: 400;
 }
 
 .accusation-outcome p {
   margin: 0;
   color: #91a096;
-  font-size: 0.78rem;
+  font-size: 0.94rem;
+  line-height: 1.6;
 }
 
 .accusation-outcome p strong {
@@ -1634,17 +1645,23 @@ h2 {
 }
 
 .outcome-time {
-  grid-column: 3;
-  grid-row: 1;
+  padding-top: 4px;
   color: #68766d;
   font-family: monospace;
-  font-size: 0.6rem;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.outcome-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
 }
 
 .reveal-button {
-  grid-column: 3;
-  min-height: 42px;
-  padding: 0 16px;
+  min-height: 46px;
+  padding: 0 22px;
   border: 1px solid var(--gold);
   color: #172018;
   background: var(--gold-bright);
@@ -1661,7 +1678,6 @@ h2 {
 }
 
 .reveal-error {
-  grid-column: 2 / -1;
   margin: 0;
   color: #df9c91 !important;
 }
@@ -2718,15 +2734,33 @@ h2 {
     width: 100%;
   }
 
-  .single-chance-warning,
-  .accusation-outcome {
+  .single-chance-warning {
     align-items: flex-start;
     flex-direction: column;
   }
 
   .accusation-outcome {
-    display: flex;
     padding: 27px 22px;
+  }
+
+  .outcome-header {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .outcome-mark {
+    width: 48px;
+    height: 48px;
+  }
+
+  .outcome-time {
+    grid-column: 2;
+    padding: 0;
+  }
+
+  .outcome-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .document-sheet {
@@ -2860,5 +2894,165 @@ h2 {
 
   .premise-layout {
     padding: 40px 20px 60px;
+  }
+}
+
+/* Observabilidade e julgamento — versão 2 */
+.accusation-extra {
+  margin: 22px 0;
+  padding: 16px 18px;
+  border: 1px solid #46564a;
+  text-align: left;
+}
+
+.accusation-extra summary {
+  color: #eee4d2;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.accusation-extra summary span {
+  margin-left: 5px;
+  color: #e0c78f;
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+
+.accusation-extra summary:focus-visible {
+  outline: 2px solid #e0c78f;
+  outline-offset: 5px;
+}
+
+.accusation-extra-content {
+  padding-top: 18px;
+}
+
+.accusation-extra label {
+  color: #eee4d2;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.accusation-extra p {
+  margin: 7px 0 12px;
+  color: #aebcaf;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.accusation-extra textarea {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  padding: 13px 14px;
+  resize: vertical;
+  border: 1px solid #607063;
+  border-radius: 4px;
+  color: #eee4d2;
+  background: #101a14;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.accusation-extra textarea::placeholder {
+  color: #8fa196;
+}
+
+.accusation-extra textarea:focus-visible {
+  outline: 2px solid #e0c78f;
+  outline-offset: 2px;
+}
+
+.insights-panel, .judgment-panel { margin-block: 1.5rem; padding: 1.3rem; border: 1px solid rgba(120,120,120,.35); border-radius: 12px; }
+.insights-panel h2, .judgment-panel h3 { margin: .3rem 0 1rem; }
+.insights-stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 1rem; }
+.insights-stats div { padding: .9rem; border: 1px solid rgba(120,120,120,.2); border-radius: 8px; }
+.insights-stats strong { display: block; font-size: 1.35rem; }
+.insights-stats span { display: block; font-size: .82rem; opacity: .75; }
+.insights-operation-table { width: 100%; border-collapse: collapse; font-size: .84rem; margin-top: 1rem; }
+.insights-operation-table th, .insights-operation-table td { text-align: left; padding: .55rem; border-bottom: 1px solid rgba(120,120,120,.2); }
+.insights-scroll { overflow-x: auto; }
+.judgment-panel ol { padding-left: 1.4rem; }
+.judgment-panel .judgment-score { font-weight: 700; font-size: 1.55rem; }
+
+.accusation-outcome .judgment-panel {
+  width: 100%;
+  margin: 0;
+  padding: clamp(20px, 3vw, 30px);
+  border-color: #526256;
+  background: #101a14a6;
+}
+
+.accusation-outcome .judgment-panel h3 {
+  margin: 8px 0 18px;
+  color: #eee4d2;
+  font-size: 1.3rem;
+}
+
+.accusation-outcome .judgment-panel .judgment-score {
+  margin-bottom: 12px;
+  color: #e0c78f;
+  font-size: clamp(1.8rem, 3vw, 2.35rem);
+  line-height: 1.1;
+}
+
+.accusation-outcome .judgment-panel .judgment-score-note {
+  margin-bottom: 20px;
+  color: #b7c6b8;
+  font-size: 0.82rem;
+}
+
+.accusation-outcome .judgment-panel > p:not(.judgment-score) {
+  max-width: 78ch;
+}
+
+.judgment-breakdown {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 22px 0 0;
+}
+
+.judgment-breakdown div {
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid #526256;
+  background: #ffffff08;
+}
+
+.judgment-breakdown dt {
+  color: #a7b5a8;
+  font-size: 0.72rem;
+}
+
+.judgment-breakdown dd {
+  margin: 6px 0 0;
+  color: #eee4d2;
+  font-size: 1.03rem;
+  font-weight: 700;
+}
+
+.accusation-outcome .judgment-panel ul {
+  max-width: 78ch;
+  margin: 22px 0 0;
+  padding-left: 22px;
+  color: #c4d0c3;
+  line-height: 1.55;
+}
+
+.accusation-outcome .judgment-panel li + li {
+  margin-top: 7px;
+}
+
+@media (max-width: 760px) {
+  .judgment-breakdown {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 460px) {
+  .judgment-breakdown {
+    grid-template-columns: 1fr;
   }
 }

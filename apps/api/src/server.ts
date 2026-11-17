@@ -14,10 +14,12 @@ import {
   CaseImageGenerationService,
   LocalImageStorage,
   createCaseImageGenerator,
+  OpenAiVisualJudge,
 } from "./image/index.js";
 import { AccusationService } from "./accusation/index.js";
 import { AccusationRepository } from "./database/index.js";
-import { PremiseRepository } from "./database/index.js";
+import { PremiseRepository, InsightsRepository } from "./database/index.js";
+import { IntelligenceServices } from "./ai/services.js";
 import { createPremiseGenerator } from "./generation/index.js";
 
 let storage: OpenDatabaseResult | undefined;
@@ -34,20 +36,37 @@ try {
     cases,
     new AccusationRepository(storage.database),
   );
+  const insights = new InsightsRepository(storage.database);
+  const intelligence = new IntelligenceServices(cases, new AccusationRepository(storage.database), insights, {
+    provider: (process.env.JUDGE_PROVIDER === "openai" || process.env.JUDGE_PROVIDER === "mock")
+      ? process.env.JUDGE_PROVIDER : config.generation.provider,
+    model: process.env.OPENAI_JUDGE_MODEL ?? config.openai.text_model,
+    apiKey: config.openai.api_key,
+  });
   const textGeneration = new CaseTextGenerationService(
     cases,
     createTextCaseGenerator(config),
     config.generation,
+    (op) => insights.record(op),
   );
   const imageGeneration = new CaseImageGenerationService(
     cases,
     createCaseImageGenerator(config),
     new LocalImageStorage(config.images, projectRoot),
     config.images,
+    config.generation.provider === "openai"
+      ? new OpenAiVisualJudge({
+          apiKey: config.openai.api_key,
+          model: process.env.OPENAI_VISUAL_JUDGE_MODEL ?? "gpt-6.1-terra",
+          timeoutSeconds: config.openai.timeout_seconds,
+        })
+      : undefined,
+    (op) => insights.record(op),
   );
   const workflow = new DefaultCaseGenerationWorkflow(
     textGeneration,
     imageGeneration,
+    (caseId) => intelligence.reviewQuality(caseId),
   );
   const generationQueue = new CaseGenerationQueue(workflow, (caseId) => {
     const status = cases.findStatus(caseId);
@@ -71,6 +90,8 @@ try {
       premises: new PremiseRepository(storage.database),
       premiseGenerator: createPremiseGenerator(config),
       accusations,
+      insights,
+      intelligence,
       generationQueue,
       generationLimits: {
         maxCasesPerHour: config.generation.max_case_generations_per_hour,

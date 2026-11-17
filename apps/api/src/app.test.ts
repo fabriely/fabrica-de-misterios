@@ -52,6 +52,21 @@ describe("GET /api/health", () => {
     });
   });
 
+  it("explains an upstream HTTP 429 without exposing provider internals", async () => {
+    const app = buildApp();
+    app.get("/openai-limited", async () => {
+      const problem = new Error("upstream sensitive diagnostics") as Error & { status: number };
+      problem.status = 429;
+      throw problem;
+    });
+    apps.push(app);
+    const response = await app.inject({ method: "GET", url: "/openai-limited" });
+    expect(response.statusCode).toBe(429);
+    expect(response.json()).toMatchObject({ code: "generation_limit_reached" });
+    expect(response.body).toContain("créditos");
+    expect(response.body).not.toContain("upstream sensitive diagnostics");
+  });
+
   it("hides unexpected error details and rejects oversized bodies", async () => {
     const app = buildApp({ bodyLimitBytes: 64 });
     app.get("/explode", async () => {

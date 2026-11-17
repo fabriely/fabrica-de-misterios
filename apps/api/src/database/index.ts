@@ -20,3 +20,5 @@ export type {
 } from "./case-repository.js";
 export type { Migration } from "./migrate.js";
 export type { OpenDatabaseOptions, OpenDatabaseResult } from "./open.js";
+
+export { InsightsRepository } from "./insights-repository.js";

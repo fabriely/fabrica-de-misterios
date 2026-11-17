@@ -38,9 +38,9 @@ export class AccusationService {
       throw new Error("O caso não está pronto para receber uma acusação.");
     }
 
-    const normalizedInput = normalizeSuspectName(request.suspectName);
+    const normalizedInput = request.suspectName ? normalizeSuspectName(request.suspectName) : null;
     const matches = bundle.publicCase.suspects.filter(
-      (suspect) => normalizeSuspectName(suspect.name) === normalizedInput,
+      (suspect) => request.suspectId ? suspect.id === request.suspectId : normalizeSuspectName(suspect.name) === normalizedInput,
     );
     if (matches.length !== 1) throw new InvalidAccusationSuspectError();
 

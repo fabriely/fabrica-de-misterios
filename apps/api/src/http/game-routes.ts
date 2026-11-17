@@ -17,6 +17,9 @@ import type { PremiseRepository } from "../database/index.js";
 import type { PremiseGenerator } from "../generation/index.js";
 import type { CaseGenerationQueue } from "../generation/index.js";
 import type { AccusationService } from "../accusation/index.js";
+import type { InsightsRepository } from "../database/insights-repository.js";
+import type { IntelligenceServices } from "../ai/services.js";
+import { measured } from "../ai/monitoring.js";
 import {
   AccusationAlreadyExistsError,
   InvalidAccusationSuspectError,
@@ -32,6 +35,8 @@ export type GameRoutesDependencies = {
     now?: () => Date;
   };
   accusations: AccusationService;
+  insights?: InsightsRepository;
+  intelligence?: IntelligenceServices;
   images: Pick<AppConfig["images"], "directory" | "public_path">;
   baseDirectory?: string;
 };
@@ -62,8 +67,16 @@ export function registerGameRoutes(
         message: "O limite de premissas desta hora foi atingido. Tente novamente mais tarde.",
       }));
     }
-    const options = await dependencies.premiseGenerator.generate(parsed.data.briefing);
-    const set = dependencies.premises.save({ id: randomUUID(), briefing: parsed.data.briefing, options });
+    const premiseSetId = randomUUID();
+    const generator = dependencies.premiseGenerator;
+    const detail = await measured(dependencies.insights ? (op)=>dependencies.insights!.record(op) : undefined,
+      "premises", {premiseSetId}, async () => generator.generateDetailed
+        ? generator.generateDetailed(parsed.data.briefing)
+        : {options:await generator.generate(parsed.data.briefing),model:"mock-premises",usage:{inputTokens:null,outputTokens:null,totalTokens:null}},
+      (value)=>({provider:generator.generateDetailed ? "openai" : "mock",
+        model:value?.model ?? "unknown-premises",
+        usage:value?.usage}));
+    const set = dependencies.premises.save({ id: premiseSetId, briefing: parsed.data.briefing, options: detail.options });
     return reply.code(201).send(set);
   });
 
@@ -108,6 +121,7 @@ export function registerGameRoutes(
       premise: selectedPremise,
       createdAt: now.toISOString(),
     });
+    dependencies.insights?.linkPremises(status.caseId, parsed.data.premiseSetId);
     dependencies.generationQueue.enqueue(status.caseId, premiseSet.briefing, selectedPremise);
 
     return reply.code(202).send(status satisfies CaseStatusResponse);
@@ -242,6 +256,17 @@ export function registerGameRoutes(
 
       try {
         const outcome = dependencies.accusations.submit(caseId, playerId, parsed.data);
+        if (dependencies.intelligence) {
+          const suspectId = parsed.data.suspectId ?? dependencies.cases.findPublicCase(caseId)?.suspects.find((item)=>item.name===outcome.accusedName)?.id;
+          if (suspectId) {
+            try {
+              dependencies.intelligence.reserve(caseId,playerId,suspectId,parsed.data.argument ?? "");
+              await dependencies.intelligence.judge(caseId,playerId);
+            } catch {
+              app.log.error("A acusação foi registrada, mas o julgamento não foi concluído.");
+            }
+          }
+        }
         return reply.code(201).send(outcome);
       } catch (error) {
         if (error instanceof AccusationAlreadyExistsError) {
@@ -264,6 +289,27 @@ export function registerGameRoutes(
       }
     },
   );
+
+  app.get<{ Params: { caseId: string } }>("/api/cases/:caseId/insights",async (request,reply)=>{
+    const caseId=parseCaseId(request.params.caseId);
+    if (!caseId) return sendError(reply,400,"invalid_request","Identificador inválido.");
+    if (!dependencies.cases.findStatus(caseId)) return caseNotFound(reply);
+    if (!dependencies.insights) return sendError(reply,503,"internal_error","Métricas indisponíveis.");
+    const insights=dependencies.insights.insights(caseId);
+    return reply.send({...insights,quality:insights.quality ? {...insights.quality,findings:[]} : null});
+  });
+
+  app.route<{ Params: { caseId: string } }>({method:["GET","POST"],url:"/api/cases/:caseId/judgment",handler:async (request,reply)=>{
+    const caseId=parseCaseId(request.params.caseId);
+    const playerId=parsePlayerId(request.headers["x-player-id"]);
+    if (!caseId||!playerId) return sendError(reply,400,"invalid_request","Identificadores inválidos.");
+    if (!dependencies.accusations.findOutcome(caseId,playerId)) return sendError(reply,403,"accusation_required","Registre uma acusação antes de solicitar o julgamento.");
+    if (!dependencies.intelligence) return sendError(reply,503,"internal_error","Jurado indisponível.");
+    if (request.method==="POST") await dependencies.intelligence.judge(caseId,playerId);
+    const judgment=dependencies.intelligence.getJudgment(caseId,playerId);
+    if (!judgment) return sendError(reply,404,"not_found","Julgamento não encontrado.");
+    return reply.send(judgment);
+  }});
 
   app.get<{ Params: { caseId: string } }>(
     "/api/cases/:caseId/reveal",

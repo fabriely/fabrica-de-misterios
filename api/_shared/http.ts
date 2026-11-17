@@ -31,6 +31,14 @@ export function playerIdFromRequest(request: Request): string | null {
 }
 
 export function internalError(cause: unknown): Response {
+  const status = cause !== null && typeof cause === "object" && "status" in cause
+    ? cause.status
+    : cause !== null && typeof cause === "object" && "statusCode" in cause
+      ? cause.statusCode
+      : null;
+  if (status === 429) {
+    return error(429, "generation_limit_reached", "A OpenAI recusou a geração (HTTP 429). Verifique créditos, faturamento e limites de uso da API; tente novamente após resolver a restrição.");
+  }
   console.error("[api] Falha interna", cause instanceof Error ? cause.name : "UnknownError");
   return error(500, "internal_error", "Não foi possível concluir a solicitação.");
 }

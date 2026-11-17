@@ -10,6 +10,7 @@ const premiseResponseSchema = z.object({ options: premiseOptionsSchema }).strict
 
 export interface PremiseGenerator {
   generate(briefing: CaseBriefing): Promise<PremiseOption[]>;
+  generateDetailed?(briefing: CaseBriefing): Promise<{ options: PremiseOption[]; model?: string | undefined; usage: { inputTokens: number | null; outputTokens: number | null; totalTokens: number | null } }>;
 }
 
 export class MockPremiseGenerator implements PremiseGenerator {
@@ -31,6 +32,10 @@ export class OpenAiPremiseGenerator implements PremiseGenerator {
   }
 
   async generate(input: CaseBriefing): Promise<PremiseOption[]> {
+    return (await this.generateDetailed(input)).options;
+  }
+
+  async generateDetailed(input: CaseBriefing) {
     const briefing = caseBriefingSchema.parse(input);
     const response = await this.client.responses.parse({
       model: this.config.text_model,
@@ -44,7 +49,11 @@ export class OpenAiPremiseGenerator implements PremiseGenerator {
     if (response.status !== "completed" || !response.output_parsed) {
       throw new CaseGenerationProviderError("A OpenAI não retornou três premissas completas.");
     }
-    return premiseOptionsSchema.parse(response.output_parsed.options);
+    return { options: premiseOptionsSchema.parse(response.output_parsed.options), model: response.model, usage: {
+      inputTokens: response.usage?.input_tokens ?? null,
+      outputTokens: response.usage?.output_tokens ?? null,
+      totalTokens: response.usage?.total_tokens ?? null,
+    } };
   }
 }
 

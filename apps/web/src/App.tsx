@@ -7,6 +7,7 @@ import { CreateCasePage } from "./features/case-creation/CreateCasePage";
 import { GenerationProgress } from "./features/case-creation/GenerationProgress";
 import { InvestigationPage } from "./features/investigation/InvestigationPage";
 import { CaseLibraryPage } from "./features/case-library/CaseLibraryPage";
+import { CostLogPage } from "./features/cost-log/CostLogPage";
 import { saveCase } from "./case-library";
 import { applyTheme, readTheme, saveTheme } from "./theme";
 
@@ -61,6 +62,11 @@ export function App() {
     setRoute({ kind: "library" });
   }
 
+  function openCosts() {
+    window.history.pushState({}, "", "/costs");
+    setRoute({ kind: "costs" });
+  }
+
   function returnToCreation() {
     window.history.pushState({}, "", "/");
     setRoute({ kind: "creation" });
@@ -84,6 +90,7 @@ export function App() {
         </button>
 
         <div className="topbar-actions">
+          <button className="library-nav-button" type="button" onClick={openCosts} aria-current={route.kind === "costs" ? "page" : undefined}>◈ <span className="library-nav-label">Custos</span></button>
           <button className="library-nav-button" type="button" onClick={openLibrary} aria-label="Meus casos" aria-current={route.kind === "library" ? "page" : undefined}>
             <span className="library-nav-icon" aria-hidden="true">▤</span><span className="library-nav-label">Meus casos</span>
           </button>
@@ -116,6 +123,8 @@ export function App() {
         />
       ) : route.kind === "library" ? (
         <CaseLibraryPage onOpenCase={openCase} onCreateCase={returnToCreation} />
+      ) : route.kind === "costs" ? (
+        <CostLogPage onOpenCase={openCase} />
       ) : (
         <CaseRoutePage
           caseId={route.caseId}
@@ -172,9 +181,11 @@ function CaseRoutePage({ caseId, onReturnHome }: { caseId: string; onReturnHome:
 type AppRoute =
   | { kind: "creation" }
   | { kind: "library" }
+  | { kind: "costs" }
   | { kind: "investigation"; caseId: string };
 
 function readRoute(): AppRoute {
+  if (/^\/costs\/?$/.test(window.location.pathname)) return { kind: "costs" };
   if (/^\/archive\/?$/.test(window.location.pathname)) return { kind: "library" };
   const match = window.location.pathname.match(
     /^\/cases\/([0-9a-f-]{36})\/?$/i,
