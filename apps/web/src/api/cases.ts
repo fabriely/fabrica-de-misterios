@@ -9,6 +9,7 @@ import {
   premiseSetSchema,
   publicCaseSchema,
   submitAccusationRequestSchema,
+  judgmentSchema, caseInsightsSchema,
 } from "@fabrica/contracts";
 import type {
   CaseStatusResponse,
@@ -19,6 +20,7 @@ import type {
   PremiseSet,
   SubmitAccusationRequest,
   PublicCase,
+  Judgment, CaseInsights,
 } from "@fabrica/contracts";
 
 export class PublicApiError extends Error {
@@ -189,4 +191,16 @@ function delay(milliseconds: number, signal?: AbortSignal) {
       { once: true },
     );
   });
+}
+
+export async function getInsights(caseId: string, signal?: AbortSignal): Promise<CaseInsights> {
+  const response = await fetch(API_PATHS.insights(caseId), { signal: signal ?? null });
+  return caseInsightsSchema.parse(await parseApiBody(response));
+}
+export async function getJudgment(caseId: string, retry = false): Promise<Judgment | null> {
+  const response = await fetch(API_PATHS.judgment(caseId), {
+    method: retry ? "POST" : "GET", headers: playerHeaders(),
+  });
+  if (response.status === 404) return null;
+  return judgmentSchema.parse(await parseApiBody(response));
 }

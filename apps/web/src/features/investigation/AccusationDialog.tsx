@@ -5,7 +5,7 @@ type AccusationDialogProps = {
   suspects: Suspect[];
   submitting: boolean;
   errorMessage: string | null;
-  onSubmit: (suspectName: string) => void;
+  onSubmit: (suspectId: string, argument: string) => void;
   onClose: () => void;
 };
 
@@ -17,7 +17,8 @@ export function AccusationDialog({
   onClose,
 }: AccusationDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [argument, setArgument] = useState("");
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -64,9 +65,9 @@ export function AccusationDialog({
               <input
                 type="radio"
                 name="accused-suspect"
-                value={suspect.name}
-                checked={selectedName === suspect.name}
-                onChange={() => setSelectedName(suspect.name)}
+                value={suspect.id}
+                checked={selectedId === suspect.id}
+                onChange={() => setSelectedId(suspect.id)}
                 disabled={submitting}
               />
               <span className="accusation-option-number">{String(index + 1).padStart(2, "0")}</span>
@@ -76,6 +77,13 @@ export function AccusationDialog({
           ))}
         </fieldset>
 
+        <div className="accusation-argument">
+          <label htmlFor="accusation-argument">Fundamente sua acusação</label>
+          <textarea id="accusation-argument" maxLength={4000} value={argument}
+            onChange={(event)=>setArgument(event.target.value)} disabled={submitting}
+            placeholder="Quais evidências, contradições, motivo e cronologia sustentam sua conclusão?" />
+          <small>{argument.trim().length}/4000 caracteres · mínimo de 20 caracteres</small>
+        </div>
         <div className="single-chance-warning">
           <strong>Uma única chance</strong>
           <span>Esta decisão será registrada permanentemente.</span>
@@ -86,10 +94,10 @@ export function AccusationDialog({
         <button
           className="confirm-accusation"
           type="button"
-          disabled={!selectedName || submitting}
-          onClick={() => selectedName && onSubmit(selectedName)}
+          disabled={!selectedId || argument.trim().length < 20 || submitting}
+          onClick={() => selectedId && onSubmit(selectedId,argument.trim())}
         >
-          {submitting ? "Registrando acusação..." : `Confirmar${selectedName ? `: ${selectedName}` : " acusação"}`}
+          {submitting ? "Registrando acusação..." : `Confirmar acusação`}
         </button>
       </section>
     </dialog>

@@ -16,11 +16,19 @@
       "maxDuration": 60,
       "experimentalTriggers": [{ "type": "queue/v2beta", "topic": "case-image-review" }]
     },
-    "api/premises.ts": { "maxDuration": 60 }
+    "api/queue-quality.ts": {
+      "maxDuration": 60,
+      "experimentalTriggers": [{ "type": "queue/v2beta", "topic": "case-quality" }]
+    },
+    "api/premises.ts": { "maxDuration": 60 },
+    "api/cases/[caseId]/accusation.ts": { "maxDuration": 60 },
+    "api/cases/[caseId]/judgment.ts": { "maxDuration": 60 }
   },
   "rewrites": [
     { "source": "/api/cases/:caseId/status", "destination": "/api/cases/[caseId]/status" },
     { "source": "/api/cases/:caseId/accusation", "destination": "/api/cases/[caseId]/accusation" },
+    { "source": "/api/cases/:caseId/insights", "destination": "/api/cases/[caseId]/insights" },
+    { "source": "/api/cases/:caseId/judgment", "destination": "/api/cases/[caseId]/judgment" },
     { "source": "/api/cases/:caseId/reveal", "destination": "/api/cases/[caseId]/reveal" },
     { "source": "/api/cases/:caseId", "destination": "/api/cases/[caseId]/index" },
     { "source": "/(.*)", "destination": "/index.html" }

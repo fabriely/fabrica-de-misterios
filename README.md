@@ -13,8 +13,8 @@ O projeto é um workspace TypeScript com aplicação React e contratos compartil
 
 Crie a configuração local antes da primeira execução:
 
-```powershell
-Copy-Item config.example.toml config.toml
+```bash
+cp config.example.toml config.toml
 ```
 
 Esse arquivo é local, ignorado pelo Git e lido somente pela API. A chave só precisa ser preenchida quando `generation.provider = "openai"`.
@@ -40,7 +40,7 @@ O andamento do MVP está registrado em [`docs/TASKS.md`](docs/TASKS.md).
 
 A geração textual e a troca entre provedor mock e OpenAI estão descritas em [`docs/generation.md`](docs/generation.md).
 
-A geração da cena e dos retratos, o armazenamento local e o fallback visual estão descritos em [`docs/images.md`](docs/images.md).
+A geração da cena e dos retratos, o juiz visual e a imagem reserva estão descritos em [`docs/images.md`](docs/images.md).
 
 As rotas para criar e consultar casos estão documentadas em [`docs/api.md`](docs/api.md).
 
@@ -79,3 +79,13 @@ O MVP usa SQLite no caminho definido por `database.path`. Na primeira execução
 - Solução privada até a acusação ser persistida.
 - Sessões anônimas identificadas por um UUID salvo no navegador. O link do caso pode ser compartilhado sem compartilhar a revelação.
 - A versão Vercel usa fila e armazenamento persistentes; a conexão com os serviços externos precisa ser feita no projeto da equipe.
+
+
+## Versão 2 — Métricas e Jurado de IA
+
+A nova versão mede operações de IA por mistério (tokens, duração, falhas, custo estimado e fallback), calcula a duração de ponta a ponta da geração, revisa a imagem antes de publicar o caso, avalia a qualidade narrativa e permite escrever uma acusação argumentativa julgada por uma LLM independente. O acerto do suspeito permanece calculado pelo backend. As avaliações e acusações são persistidas em SQLite local e PostgreSQL na Vercel.
+
+Veja **[docs/observability-and-juror.md](docs/observability-and-juror.md)** para contratos, variáveis de ambiente (`JUDGE_PROVIDER`, `OPENAI_JUDGE_MODEL`, `AI_PRICING_JSON`), custos não precificados, migrações, limites, modo mock e roteiro de homologação. Não há chaves de API embutidas no repositório.
+
+
+Para publicar a versão integrada, siga [`docs/deploy-vercel.md`](docs/deploy-vercel.md) e execute a migração do banco antes de atualizar a aplicação.

@@ -12,6 +12,8 @@ export type ImageGenerationUsage = {
   inputTokens: number | null;
   outputTokens: number | null;
   totalTokens: number | null;
+  inputTextTokens?: number | null;
+  inputImageTokens?: number | null;
 };
 
 export type GeneratedImage = {

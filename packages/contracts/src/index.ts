@@ -85,3 +85,6 @@ export type {
   AccusationResult,
   SubmitAccusationRequest,
 } from "./accusation.js";
+
+export { aiOperationSchema, operationStageSchema, caseInsightsSchema, qualityReviewSchema, judgmentSchema, judgmentScoresSchema } from "./insights.js";
+export type { AiOperation, OperationStage, QualityReview, CaseInsights, Judgment, JudgmentScores } from "./insights.js";

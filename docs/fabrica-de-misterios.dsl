@@ -13,8 +13,10 @@ workspace "Fábrica de Mistérios" "Publicação na Vercel com Neon, Blob e Queu
                 validador = component "Validador estrutural" "Confere esquema, IDs, referências, quantidades e evidências decisivas públicas; a coerência narrativa precisa de testes com pessoas." "TypeScript + Zod"
                 visual = component "Gerador visual" "Solicita uma cena a partir da especificação aprovada e conserva as pistas verificáveis no dossiê." "TypeScript + API de imagens"
                 juizVisual = component "Juiz visual" "Inspeciona a imagem da cena, pede uma correção se houver defeito grave e aprova ou usa imagem reserva." "TypeScript + visão + Structured Outputs"
+                qualidade = component "Avaliador narrativo" "Avalia lógica, evidências, justiça, originalidade e solucionabilidade depois que o caso fica pronto." "TypeScript + Structured Outputs"
+                metricas = component "Métricas de IA" "Registra duração, tokens, custo estimado e falhas de cada operação." "TypeScript + SQL"
                 repositorio = component "Repositório de casos" "Expõe só o dossiê público e mantém solução e acusações por jogador no servidor." "TypeScript + SQL"
-                veredito = component "Avaliador de acusação" "Compara suspeito e evidências com a solução privada e só então devolve a explicação." "TypeScript"
+                veredito = component "Jurado de acusação" "Pontua a justificativa com base nas provas; o acerto do suspeito é calculado no servidor." "TypeScript + Structured Outputs"
             }
 
             banco = container "Banco de Dados" "Guarda briefing, premissa, dossiê público, solução privada e acusações separadas por jogador." "Neon PostgreSQL" {
@@ -25,8 +27,8 @@ workspace "Fábrica de Mistérios" "Publicação na Vercel com Neon, Blob e Queu
             }
         }
 
-        openai = softwareSystem "OpenAI API" "Serviço externo para geração estruturada de texto, imagens e revisão visual."
-        fila = softwareSystem "Vercel Queues" "Executa a geração de texto, imagem e revisão visual em etapas assíncronas duráveis."
+        openai = softwareSystem "OpenAI API" "Serviço externo para gerar texto e imagens e avaliar a cena, o caso e a justificativa."
+        fila = softwareSystem "Vercel Queues" "Executa geração e revisões visual e narrativa em quatro etapas assíncronas duráveis."
 
         jogador -> web "Configura, investiga e acusa" "HTTPS"
         web -> api "Envia briefing e acusação; recebe premissas, dossiê público e veredito" "JSON/HTTPS"
@@ -39,7 +41,8 @@ workspace "Fábrica de Mistérios" "Publicação na Vercel com Neon, Blob e Queu
         web -> premissas "Solicita premissas sem spoilers" "JSON/HTTPS"
         web -> instrucoes "Envia briefing e premissa escolhida" "JSON/HTTPS"
         web -> repositorio "Consulta o dossiê pelo ID do caso" "JSON/HTTPS"
-        web -> veredito "Envia acusação" "JSON/HTTPS"
+        web -> veredito "Envia acusação fundamentada" "JSON/HTTPS"
+        web -> metricas "Consulta tempo, custo estimado e qualidade" "JSON/HTTPS"
 
         premissas -> openai "Gera opções de premissa" "HTTPS"
         instrucoes -> gerador "Envia regras do autor + escolhas da pessoa"
@@ -53,8 +56,13 @@ workspace "Fábrica de Mistérios" "Publicação na Vercel com Neon, Blob e Queu
         juizVisual -> openai "Inspeciona a imagem e devolve parecer estruturado" "HTTPS"
         juizVisual -> visual "Pede nova cena com correções, no máximo uma vez"
         juizVisual -> repositorio "Vincula a cena aprovada ou imagem reserva ao caso"
+        juizVisual -> qualidade "Libera a avaliação narrativa após concluir a cena"
+        qualidade -> openai "Solicita parecer narrativo estruturado" "HTTPS"
+        qualidade -> repositorio "Grava a avaliação do caso"
+        metricas -> repositorio "Registra operações e consulta resultados"
         repositorio -> banco "Persiste e consulta o caso" "PostgreSQL/TCP"
-        veredito -> repositorio "Lê solução privada e registra veredito"
+        veredito -> openai "Avalia a justificativa sem alterar a solução" "HTTPS"
+        veredito -> repositorio "Lê solução privada e registra nota"
     }
 
     views {
@@ -66,7 +74,7 @@ workspace "Fábrica de Mistérios" "Publicação na Vercel com Neon, Blob e Queu
 
         component api "api-components" {
             title "API de Orquestração — Componentes da criação do caso"
-            include web premissas instrucoes gerador validador visual juizVisual repositorio veredito banco midia openai
+            include web premissas instrucoes gerador validador visual juizVisual qualidade metricas repositorio veredito banco midia openai
             autoLayout lr
         }
 

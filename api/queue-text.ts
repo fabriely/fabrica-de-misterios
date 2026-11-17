@@ -3,6 +3,8 @@ import { handleCallback, send } from "@vercel/queue";
 import { caseBriefingSchema, caseIdSchema, privateSolutionSchema, selectedPremiseSchema } from "@fabrica/contracts";
 import { db } from "./_shared/db.js";
 import { generateCase } from "./_shared/generation.js";
+import { measured } from "../apps/api/src/ai/monitoring.js";
+import { recordOperation } from "./_shared/observability.js";
 
 export const POST = handleCallback(async (message: unknown) => {
   const caseId = caseIdSchema.parse((message as { caseId?: unknown }).caseId);
@@ -24,7 +26,13 @@ export const POST = handleCallback(async (message: unknown) => {
   const briefing = caseBriefingSchema.parse(row.briefing_json);
   const premise = selectedPremiseSchema.parse(row.selected_premise_json);
   try {
-    const result = await generateCase(briefing, premise);
+    const result = await measured(recordOperation, "case_text", { caseId },
+      () => generateCase(briefing, premise),
+      (value) => ({
+        provider: value?.metadata.provider ?? (process.env.GENERATION_PROVIDER === "mock" ? "mock" : "openai"),
+        model: value?.metadata.model ?? process.env.OPENAI_TEXT_MODEL ?? "unknown",
+        usage: value?.metadata.usage,
+      }));
     const solution = privateSolutionSchema.parse({ ...result.output.privateSolution, caseId });
     const updated = await sql`UPDATE cases SET status = 'generating_image', progress = 70,
       draft_public_case_json = ${JSON.stringify(result.output.publicCase)}::jsonb,

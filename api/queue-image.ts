@@ -4,6 +4,9 @@ import { put } from "@vercel/blob";
 import { caseBundleSchema, caseIdSchema, generatedPublicCaseSchema, privateSolutionSchema, publicCaseSchema } from "@fabrica/contracts";
 import { db } from "./_shared/db.js";
 import { generateImage, generatePortraitSheet } from "./_shared/generation.js";
+import { measured } from "../apps/api/src/ai/monitoring.js";
+import { recordOperation } from "./_shared/observability.js";
+import { scheduleQualityReview } from "./_shared/quality-dispatch.js";
 
 export const POST = handleCallback(async (message: unknown) => {
   const caseId = caseIdSchema.parse((message as { caseId?: unknown }).caseId);
@@ -35,8 +38,22 @@ export const POST = handleCallback(async (message: unknown) => {
       ? `${String(row.image_prompt)}\n\nNOVA TENTATIVA — corrija estes defeitos visuais, mantendo cenário e pistas: ${retryFeedback}`
       : String(row.image_prompt);
     const [sceneImage, portraitsImage] = await Promise.all([
-      generateImage(caseId, imagePrompt, draft.scene.imageAlt),
-      row.candidate_portraits_url ? Promise.resolve(null) : generatePortraitSheet(caseId, draft.briefing, draft.suspects),
+      measured(recordOperation, "scene_image", { caseId },
+        () => generateImage(caseId, imagePrompt, draft.scene.imageAlt),
+        (value) => ({
+          provider: value?.metadata.provider ?? "openai",
+          model: value?.metadata.model ?? "unknown",
+          usage: value?.metadata.usage,
+          isFallback: value?.metadata.provider === "fallback",
+        })),
+      row.candidate_portraits_url ? Promise.resolve(null) : measured(recordOperation, "portraits_image", { caseId },
+        () => generatePortraitSheet(caseId, draft.briefing, draft.suspects),
+        (value) => ({
+          provider: value?.metadata.provider ?? "openai",
+          model: value?.metadata.model ?? "unknown",
+          usage: value?.metadata.usage,
+          isFallback: value?.metadata.provider === "fallback",
+        })),
     ]);
     const [sceneBlob, portraitsBlob] = await Promise.all([
       put(`cases/${caseId}/scene-${randomUUID()}.${sceneImage.extension}`, Buffer.from(sceneImage.bytes), {
@@ -53,10 +70,11 @@ export const POST = handleCallback(async (message: unknown) => {
         portraitSheetUrl: portraitsUrl, scene: { ...draft.scene, imageUrl: sceneBlob.url },
       });
       caseBundleSchema.parse({ publicCase, privateSolution: solution });
-      await sql`UPDATE cases SET status = 'ready', progress = 100, public_case_json = ${JSON.stringify(publicCase)}::jsonb,
+      const completed = await sql`UPDATE cases SET status = 'ready', progress = 100, public_case_json = ${JSON.stringify(publicCase)}::jsonb,
         image_review_state = 'fallback', candidate_scene_url = ${sceneBlob.url}, candidate_portraits_url = ${portraitsUrl},
         image_claim_id = NULL, error_message = NULL, updated_at = NOW()
-        WHERE id = ${caseId} AND status = 'generating_image' AND image_claim_id = ${claimId}`;
+        WHERE id = ${caseId} AND status = 'generating_image' AND image_claim_id = ${claimId} RETURNING id`;
+      if (completed[0]) await scheduleQualityReview(caseId);
       return;
     }
     const updated = await sql`UPDATE cases SET progress = 85, image_review_state = 'awaiting_review',

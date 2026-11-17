@@ -70,6 +70,10 @@ export class OpenAiImageGenerator implements CaseImageGenerator {
           inputTokens: response.usage?.input_tokens ?? null,
           outputTokens: response.usage?.output_tokens ?? null,
           totalTokens: response.usage?.total_tokens ?? null,
+          ...(response.usage?.input_tokens_details ? {
+            inputTextTokens: response.usage.input_tokens_details.text_tokens,
+            inputImageTokens: response.usage.input_tokens_details.image_tokens,
+          } : {}),
         },
       },
     };

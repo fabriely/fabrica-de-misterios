@@ -6,6 +6,9 @@ import { OpenAiVisualJudge, reviewPassed, visualReviewSchema } from "../apps/api
 import { SvgImageGenerator } from "../apps/api/src/image/svg-image-generator.js";
 import { db } from "./_shared/db.js";
 import { generationConfig } from "./_shared/generation.js";
+import { measured } from "../apps/api/src/ai/monitoring.js";
+import { recordOperation } from "./_shared/observability.js";
+import { scheduleQualityReview } from "./_shared/quality-dispatch.js";
 
 export const POST = handleCallback(async (message: unknown) => {
   const caseId = caseIdSchema.parse((message as { caseId?: unknown }).caseId);
@@ -45,7 +48,9 @@ export const POST = handleCallback(async (message: unknown) => {
       model: process.env.OPENAI_VISUAL_JUDGE_MODEL ?? "gpt-6.1-terra",
       timeoutSeconds: 42,
     });
-    result = await judge.review({ imageUrl: sceneUrl, draft, imagePrompt });
+    result = await measured(recordOperation, "visual_review", { caseId },
+      () => judge.review({ imageUrl: sceneUrl, draft, imagePrompt }),
+      (value) => ({ provider: "openai", model: value?.model ?? process.env.OPENAI_VISUAL_JUDGE_MODEL ?? "gpt-6.1-terra", usage: value?.usage }));
   } catch (cause) {
     console.error("[visual-review] Falha na revisão:", cause instanceof Error ? cause.name : "UnknownError");
     await publishFallback(JSON.stringify([{ attempt, error: "judge_unavailable" }]));
@@ -61,10 +66,11 @@ export const POST = handleCallback(async (message: unknown) => {
       portraitSheetUrl: portraitsUrl, scene: { ...draft.scene, imageUrl: sceneUrl },
     });
     caseBundleSchema.parse({ publicCase, privateSolution: solution });
-    await sql`UPDATE cases SET status = 'ready', progress = 100, public_case_json = ${JSON.stringify(publicCase)}::jsonb,
+    const completed = await sql`UPDATE cases SET status = 'ready', progress = 100, public_case_json = ${JSON.stringify(publicCase)}::jsonb,
       image_review_state = 'passed', image_review_json = image_review_json || ${record}::jsonb,
       image_review_claim_id = NULL, error_message = NULL, updated_at = NOW()
-      WHERE id = ${caseId} AND status = 'generating_image' AND image_review_claim_id = ${claimId}`;
+      WHERE id = ${caseId} AND status = 'generating_image' AND image_review_claim_id = ${claimId} RETURNING id`;
+    if (completed[0]) await scheduleQualityReview(caseId);
     return;
   }
 
@@ -95,10 +101,11 @@ export const POST = handleCallback(async (message: unknown) => {
         portraitSheetUrl: portraitsUrl, scene: { ...draft.scene, imageUrl: blob.url },
       });
       caseBundleSchema.parse({ publicCase, privateSolution: solution });
-      await sql`UPDATE cases SET status = 'ready', progress = 100, public_case_json = ${JSON.stringify(publicCase)}::jsonb,
+      const completed = await sql`UPDATE cases SET status = 'ready', progress = 100, public_case_json = ${JSON.stringify(publicCase)}::jsonb,
         image_review_state = 'fallback', image_review_json = image_review_json || ${record}::jsonb,
         image_review_claim_id = NULL, error_message = NULL, updated_at = NOW()
-        WHERE id = ${caseId} AND status = 'generating_image' AND image_review_claim_id = ${claimId}`;
+        WHERE id = ${caseId} AND status = 'generating_image' AND image_review_claim_id = ${claimId} RETURNING id`;
+      if (completed[0]) await scheduleQualityReview(caseId);
     } catch (cause) {
       console.error("[visual-review] Falha na imagem reserva:", cause instanceof Error ? cause.name : "UnknownError");
       await sql`UPDATE cases SET status = 'failed', error_message = 'Não foi possível concluir a revisão visual.',

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { send } from "@vercel/queue";
 import { createCaseRequestSchema, premiseSetSchema, caseStatusResponseSchema } from "@fabrica/contracts";
 import { db } from "../_shared/db.js";
+import { linkPremiseOperations } from "../_shared/observability.js";
 import { body, error, internalError, json, methodNotAllowed } from "../_shared/http.js";
 
 export default {
@@ -21,6 +22,7 @@ export default {
       const caseId = randomUUID();
       await sql`INSERT INTO cases (id, status, progress, briefing_json, selected_premise_json) VALUES (${caseId}, 'queued', 0, ${JSON.stringify(set.briefing)}::jsonb, ${JSON.stringify(premise)}::jsonb)`;
       try {
+        await linkPremiseOperations(caseId,parsed.data.premiseSetId);
         await send("case-text", { caseId });
       } catch (cause) {
         await sql`UPDATE cases SET status = 'failed', error_message = 'Não foi possível iniciar a geração.', updated_at = NOW() WHERE id = ${caseId}`;

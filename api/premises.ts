@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { createPremisesRequestSchema, premiseSetSchema } from "@fabrica/contracts";
 import { db } from "./_shared/db.js";
-import { generatePremises } from "./_shared/generation.js";
+import { generatePremisesDetailed } from "./_shared/generation.js";
+import { measured } from "../apps/api/src/ai/monitoring.js";
+import { recordOperation } from "./_shared/observability.js";
 import { body, error, internalError, json, methodNotAllowed } from "./_shared/http.js";
 
 export default {
@@ -15,8 +17,12 @@ export default {
       if (Number(count[0]?.total ?? 0) >= 15) {
         return error(429, "generation_limit_reached", "O limite de premissas desta hora foi atingido.");
       }
-      const options = await generatePremises(parsed.data.briefing);
-      const set = premiseSetSchema.parse({ id: randomUUID(), briefing: parsed.data.briefing, options });
+      const setId=randomUUID();
+      const generation=await measured(recordOperation,"premises",{premiseSetId:setId},
+        ()=>generatePremisesDetailed(parsed.data.briefing),
+        (value)=>({provider:value?.provider ?? (process.env.GENERATION_PROVIDER === "mock" ? "mock" : "openai"),
+          model:value?.model ?? process.env.OPENAI_TEXT_MODEL ?? "unknown",usage:value?.usage}));
+      const set = premiseSetSchema.parse({ id: setId, briefing: parsed.data.briefing, options:generation.options });
       await sql`INSERT INTO premise_sets (id, briefing_json, options_json) VALUES (${set.id}, ${JSON.stringify(set.briefing)}::jsonb, ${JSON.stringify(set.options)}::jsonb)`;
       return json(set, 201);
     } catch (cause) {

@@ -86,11 +86,7 @@ export type ImageMetadata = {
   model: string;
   filePath: string;
   isFallback: boolean;
-  usage: {
-    inputTokens: number | null;
-    outputTokens: number | null;
-    totalTokens: number | null;
-  };
+  usage: z.infer<typeof imageUsageSchema>;
 };
 
 export type QueuedCase = {
@@ -469,5 +465,7 @@ const imageUsageSchema = z
     inputTokens: nullableTokenCountSchema,
     outputTokens: nullableTokenCountSchema,
     totalTokens: nullableTokenCountSchema,
+    inputTextTokens: nullableTokenCountSchema.optional(),
+    inputImageTokens: nullableTokenCountSchema.optional(),
   })
   .strict();

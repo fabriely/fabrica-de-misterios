@@ -36,8 +36,8 @@ describe("database migrations", () => {
   it("creates the initial schema exactly once", async () => {
     const { database } = await createFileDatabase();
 
-    expect(getSchemaVersion(database)).toBe(5);
-    expect(runMigrations(database)).toBe(5);
+    expect(getSchemaVersion(database)).toBe(6);
+    expect(runMigrations(database)).toBe(6);
 
     const migrations = database
       .prepare("SELECT version, name FROM schema_migrations")
@@ -54,9 +54,13 @@ describe("database migrations", () => {
       { version: 3, name: "image_metadata" },
       { version: 4, name: "accusation_decisive_evidence" },
       { version: 5, name: "premises_and_independent_players" },
+      { version: 6, name: "ai_operations_quality_and_judgments" },
     ]);
     expect(tables.map((table) => table.name)).toEqual([
+      "accusation_judgments",
       "accusations",
+      "ai_operations",
+      "case_quality_reviews",
       "cases",
       "premise_sets",
       "schema_migrations",
@@ -119,6 +123,42 @@ describe("CaseRepository", () => {
     expect(
       JSON.stringify(reopenedRepository.findPublicCase(CASE_ID)),
     ).not.toContain("Dívidas do hotel");
+  });
+
+  it("reads image metadata containing OpenAI image token details", async () => {
+    const { database } = await createFileDatabase();
+    const repository = new CaseRepository(database);
+    const draft = validGenerationOutput();
+    repository.createPending({ id: CASE_ID, briefing: draft.publicCase.briefing });
+    repository.markGeneratingCase(CASE_ID);
+    repository.saveGenerationDraft(CASE_ID, draft, {
+      provider: "openai",
+      textModel: "test-model",
+      responseId: null,
+      promptVersion: "case-v1",
+      usage: { inputTokens: 1, outputTokens: 1, reasoningTokens: 0, totalTokens: 2 },
+    });
+    repository.complete(materializePublicCase(draft.publicCase), {
+      provider: "openai",
+      model: "test-image-model",
+      filePath: "/tmp/case-scene.webp",
+      isFallback: false,
+      usage: {
+        inputTokens: 220,
+        outputTokens: 158,
+        totalTokens: 378,
+        inputTextTokens: 220,
+        inputImageTokens: 0,
+      },
+    });
+
+    expect(repository.findImageMetadata(CASE_ID)?.usage).toEqual({
+      inputTokens: 220,
+      outputTokens: 158,
+      totalTokens: 378,
+      inputTextTokens: 220,
+      inputImageTokens: 0,
+    });
   });
 
   it("stores failures without allowing invalid state transitions", async () => {
@@ -264,7 +304,7 @@ describe("AccusationRepository", () => {
 
     const reopened = openDatabase({ filename });
     openDatabases.push(reopened.database);
-    expect(reopened.schemaVersion).toBe(5);
+    expect(reopened.schemaVersion).toBe(6);
     expect(
       new AccusationRepository(reopened.database).findByCaseId(CASE_ID, PLAYER_ID)?.result
         .decisiveEvidenceIds,

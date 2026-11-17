@@ -10,9 +10,12 @@ import {
 
 export const submitAccusationRequestSchema = z
   .object({
-    suspectName: z.string().trim().min(1).max(100),
+    suspectId: z.string().regex(/^[a-z][a-z0-9_]{1,63}$/).optional(),
+    suspectName: z.string().trim().min(1).max(100).optional(), // retrocompatibilidade
+    argument: z.string().trim().max(4000).optional(),
   })
-  .strict();
+  .strict()
+  .refine((value) => Boolean(value.suspectId || value.suspectName), { message: "Selecione um suspeito." });
 
 export const accusationRecordSchema = z
   .object({

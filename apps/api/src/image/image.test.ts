@@ -4,6 +4,7 @@ import path from "node:path";
 import type Database from "better-sqlite3";
 import type OpenAI from "openai";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { AiOperation } from "@fabrica/contracts";
 import type { AppConfig } from "../config/index.js";
 import { CaseRepository, openDatabase } from "../database/index.js";
 import { MockCaseGenerator } from "../generation/index.js";
@@ -222,18 +223,23 @@ describe("CaseImageGenerationService", () => {
     const review = vi.fn()
       .mockResolvedValueOnce(judgeResult(majorScaleIssue()))
       .mockResolvedValueOnce(judgeResult(cleanReview()));
+    const operations: string[] = [];
     const service = new CaseImageGenerationService(
       repository,
       { generate },
       new LocalImageStorage(imagesConfig(), directory),
       imagesConfig(),
       { review } as VisualJudge,
+      (operation: AiOperation) => { operations.push(operation.stage); },
     );
 
     const result = await service.generate(CASE_ID);
 
     expect(generate).toHaveBeenCalledTimes(3);
     expect(review).toHaveBeenCalledTimes(2);
+    expect(operations.sort()).toEqual([
+      "portraits_image", "scene_image", "scene_image", "visual_review", "visual_review",
+    ]);
     expect(review.mock.calls[0]?.[0].imageUrl).toMatch(/^data:image\/svg\+xml;base64,/);
     expect(generate.mock.calls[2]?.[0].prompt).toContain("a pessoa é grande demais para a cama");
     expect(result.isFallback).toBe(false);

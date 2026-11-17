@@ -231,7 +231,7 @@ export function CreateCasePage({
 
         {errorMessage && (
           <div className="form-error" role="alert">
-            <strong>O arquivo não pôde ser aberto.</strong>
+            <strong>Não foi possível gerar as premissas.</strong>
             <span>{errorMessage}</span>
           </div>
         )}
