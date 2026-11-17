@@ -43,9 +43,18 @@ export class IntelligenceServices {
     const saved = this.insights.getJudgmentData(caseId,playerId);
     const accusation = this.accusations.findByCaseId(caseId,playerId);
     const bundle = this.cases.findBundleForAccusation(caseId);
-    if (!saved || !accusation || !bundle || saved.judgment?.status === "completed") return;
+    if (!saved || !accusation || !bundle || saved.judgment?.status === "completed" || saved.judgment?.status === "skipped") return;
     const accused = bundle.publicCase.suspects.find((suspect)=>suspect.id===saved.suspectId);
     if (!accused) return;
+    if (!saved.argument.trim()) {
+      this.insights.saveJudgment(caseId,playerId,{
+        caseId,status:"skipped",provider:this.settings.provider,model:this.settings.model,
+        rubricVersion:"juror-v1",correct:accusation.result.correct,accusedName:accused.name,
+        argument:"",scores:null,totalScore:null,recognizedEvidenceIds:[],feedback:"",
+        shortcomings:[],judgedAt:new Date().toISOString(),
+      });
+      return;
+    }
     try {
       const result = await measured((op)=>this.insights.record(op),"accusation_judgment",{caseId},
         () => judgeAccusation(bundle,saved.suspectId,saved.argument,this.settings),

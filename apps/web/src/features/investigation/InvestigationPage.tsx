@@ -55,6 +55,7 @@ export function InvestigationPage({
   const [reloadKey, setReloadKey] = useState(0);
   const [insights, setInsights] = useState<CaseInsights | null>(null);
   const [judgment, setJudgment] = useState<Judgment | null>(null);
+  const [judgmentLoaded, setJudgmentLoaded] = useState(false);
   const [judgmentBusy, setJudgmentBusy] = useState(false);
   const [judgmentError, setJudgmentError] = useState<string | null>(null);
 
@@ -62,7 +63,7 @@ export function InvestigationPage({
     const controller = new AbortController();
     setLoadState({ kind: "loading" });
     setRevealState({ kind: "idle" });
-    setInsights(null); setJudgment(null); setJudgmentError(null);
+    setInsights(null); setJudgment(null); setJudgmentLoaded(false); setJudgmentError(null);
     void Promise.all([
       getCase(caseId, controller.signal),
       getAccusation(caseId, controller.signal),
@@ -71,7 +72,10 @@ export function InvestigationPage({
         if (controller.signal.aborted) return;
         setLoadState({ kind: "loaded", dossier, accusation });
         void getInsights(caseId).then((info)=> {if (!controller.signal.aborted) setInsights(info);}).catch(()=>{});
-        if (accusation) void getJudgment(caseId).then((value)=>{if(!controller.signal.aborted) setJudgment(value);}).catch(()=>{});
+        if (accusation) void getJudgment(caseId)
+          .then((value)=>{if(!controller.signal.aborted) setJudgment(value);})
+          .catch(()=>{})
+          .finally(()=>{if(!controller.signal.aborted) setJudgmentLoaded(true);});
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
@@ -147,9 +151,10 @@ export function InvestigationPage({
   async function accuse(suspectId: string, argument: string) {
     setAccusationSubmitting(true);
     setAccusationError(null);
+    setJudgmentLoaded(false);
     try {
       const accusation = await submitAccusation(caseId, { suspectId, argument });
-      void getJudgment(caseId).then(setJudgment).catch(()=>{});
+      void getJudgment(caseId).then(setJudgment).catch(()=>{}).finally(()=>setJudgmentLoaded(true));
       void getInsights(caseId).then(setInsights).catch(()=>{});
       setLoadState({ kind: "loaded", dossier, accusation });
       setAccusationOpen(false);
@@ -160,7 +165,7 @@ export function InvestigationPage({
           if (accusation) {
             setLoadState({ kind: "loaded", dossier, accusation });
             setAccusationOpen(false);
-            void getJudgment(caseId).then(setJudgment).catch(()=>{});
+            void getJudgment(caseId).then(setJudgment).catch(()=>{}).finally(()=>setJudgmentLoaded(true));
             return;
           }
         } catch {
@@ -240,6 +245,7 @@ export function InvestigationPage({
           revealState={revealState}
           onReveal={() => void revealCase()}
           judgment={judgment}
+          judgmentLoaded={judgmentLoaded}
           judgmentBusy={judgmentBusy}
           judgmentError={judgmentError}
           onRetryJudgment={() => {
@@ -291,12 +297,13 @@ export function InvestigationPage({
 function AccusationOutcomeCard({
   outcome,
   revealState,
-  onReveal, judgment, onRetryJudgment, judgmentBusy, judgmentError,
+  onReveal, judgment, judgmentLoaded, onRetryJudgment, judgmentBusy, judgmentError,
 }: {
   outcome: AccusationOutcome;
   revealState: { kind: "idle" } | { kind: "loading" } | { kind: "error"; message: string };
   onReveal: () => void;
   judgment: Judgment | null;
+  judgmentLoaded: boolean;
   judgmentBusy: boolean;
   judgmentError: string | null;
   onRetryJudgment: () => void;
@@ -314,7 +321,7 @@ function AccusationOutcomeCard({
           {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(outcome.submittedAt))}
         </time>
       </header>
-      {!judgment && <section className="judgment-panel">
+      {!judgment && judgmentLoaded && <section className="judgment-panel">
         <span className="kicker">JURADO DE IA</span>
         <h3>Julgamento ainda não disponível</h3>
         <p>A acusação está registrada. Caso o julgamento tenha sido interrompido, você pode retomá-lo sem consumir uma nova tentativa.</p>
@@ -322,17 +329,19 @@ function AccusationOutcomeCard({
           {judgmentBusy ? "Avaliando..." : "Consultar / retomar julgamento"}
         </button>
       </section>}
-      {judgment && <section className="judgment-panel">
+      {judgment && judgment.status !== "skipped" && <section className="judgment-panel">
         <span className="kicker">JURADO DE IA · {judgment.provider === "mock" ? "SIMULAÇÃO" : judgment.model}</span>
-        <h3>{judgment.status === "completed" ? "Parecer da acusação" : "Avaliação pendente de recuperação"}</h3>
-        {judgment.totalScore !== null && <p className="judgment-score">{judgment.totalScore}/100 pontos</p>}
+        <h3>{judgment.status === "completed" ? "Sua explicação" : "Avaliação pendente de recuperação"}</h3>
+        {judgment.scores && judgment.provider !== "mock" && <>
+          <p className="judgment-score">{Object.values(judgment.scores).reduce((sum, value) => sum + value, 0)}/65 pontos na justificativa</p>
+          <p className="judgment-score-note">O acerto do suspeito aparece acima. Esta nota considera apenas como você explicou sua hipótese.</p>
+        </>}
         <p>{judgment.feedback}</p>
-        {judgment.scores && <dl className="judgment-breakdown">
+        {judgment.scores && judgment.provider !== "mock" && <dl className="judgment-breakdown">
           <div><dt>Provas</dt><dd>{judgment.scores.evidence}/30</dd></div>
           <div><dt>Motivo</dt><dd>{judgment.scores.motive}/15</dd></div>
           <div><dt>Método</dt><dd>{judgment.scores.method}/10</dd></div>
           <div><dt>Cronologia</dt><dd>{judgment.scores.chronology}/10</dd></div>
-          <div><dt>Identificação</dt><dd>{judgment.correct ? 35 : 0}/35</dd></div>
         </dl>}
         {judgment.shortcomings.length > 0 && <ul>{judgment.shortcomings.map((note,i)=><li key={i}>{note}</li>)}</ul>}
         {judgment.status === "failed" && <button type="button" className="secondary-button" disabled={judgmentBusy} onClick={onRetryJudgment}>{judgmentBusy ? "Avaliando..." : "Tentar julgamento novamente"}</button>}

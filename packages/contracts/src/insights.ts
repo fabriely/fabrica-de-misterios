@@ -47,7 +47,7 @@ export const judgmentScoresSchema = z.object({
 }).strict();
 export const judgmentSchema = z.object({
   caseId: caseIdSchema,
-  status: z.enum(["completed", "failed"]),
+  status: z.enum(["completed", "failed", "skipped"]),
   provider: z.enum(["mock", "openai"]),
   model: z.string(),
   rubricVersion: z.literal("juror-v1"),

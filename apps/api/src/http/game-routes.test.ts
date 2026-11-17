@@ -355,6 +355,27 @@ describe("public game API", () => {
     expect(repeated.json()).toEqual(judgment.json());
   });
 
+  it("permite acusar sem justificativa e não chama o jurado", async () => {
+    const context = await createGameContext();
+    const creation = await context.app.inject({ method: "POST", url: API_PATHS.cases, payload: validCreateCaseRequest() });
+    const caseId = creation.json().caseId as string;
+    await context.queue.drain();
+
+    const accusation = await context.app.inject({ method: "POST", url: API_PATHS.accusation(caseId),
+      headers: { "X-Player-Id": PLAYER_ID }, payload: { suspectId: "suspect_1" } });
+    expect(accusation.statusCode).toBe(201);
+    expect(accusation.json()).toMatchObject({ correct: true });
+
+    const judgment = await context.app.inject({ method: "GET", url: API_PATHS.judgment(caseId), headers: { "X-Player-Id": PLAYER_ID } });
+    expect(judgment.statusCode).toBe(200);
+    expect(judgment.json()).toMatchObject({ status: "skipped", scores: null, totalScore: null });
+
+    const repeated = await context.app.inject({ method: "POST", url: API_PATHS.judgment(caseId), headers: { "X-Player-Id": PLAYER_ID } });
+    expect(repeated.json()).toEqual(judgment.json());
+    const insights = await context.app.inject({ method: "GET", url: API_PATHS.insights(caseId) });
+    expect(insights.json().operations.some((op: { stage: string }) => op.stage === "accusation_judgment")).toBe(false);
+  });
+
   it("records an incorrect accusation without revealing the culprit", async () => {
     const context = await createGameContext();
     const creation = await context.app.inject({

@@ -20,6 +20,11 @@ export function AccusationDialog({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [argument, setArgument] = useState("");
 
+  function submitReport() {
+    if (!selectedId) return;
+    onSubmit(selectedId, argument.trim());
+  }
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -77,13 +82,23 @@ export function AccusationDialog({
           ))}
         </fieldset>
 
-        <div className="accusation-argument">
-          <label htmlFor="accusation-argument">Fundamente sua acusação</label>
-          <textarea id="accusation-argument" maxLength={4000} value={argument}
-            onChange={(event)=>setArgument(event.target.value)} disabled={submitting}
-            placeholder="Quais evidências, contradições, motivo e cronologia sustentam sua conclusão?" />
-          <small>{argument.trim().length}/4000 caracteres · mínimo de 20 caracteres</small>
-        </div>
+        <details className="accusation-extra">
+          <summary>Desafio extra: explique seu palpite <span>opcional</span></summary>
+          <div className="accusation-extra-content">
+            <label htmlFor="accusation-argument">O que fez você suspeitar dessa pessoa?</label>
+            <p id="accusation-argument-hint">Pode citar uma pista, um motivo ou uma oportunidade. O jurado de IA avalia só o que você escrever; deixar em branco não gera nota.</p>
+            <textarea
+              id="accusation-argument"
+              aria-describedby="accusation-argument-hint"
+              maxLength={1200}
+              rows={4}
+              value={argument}
+              onChange={(event) => setArgument(event.target.value)}
+              disabled={submitting}
+              placeholder="Ex.: o álibi não combina com o horário do registro..."
+            />
+          </div>
+        </details>
         <div className="single-chance-warning">
           <strong>Uma única chance</strong>
           <span>Esta decisão será registrada permanentemente.</span>
@@ -94,8 +109,8 @@ export function AccusationDialog({
         <button
           className="confirm-accusation"
           type="button"
-          disabled={!selectedId || argument.trim().length < 20 || submitting}
-          onClick={() => selectedId && onSubmit(selectedId,argument.trim())}
+          disabled={!selectedId || submitting}
+          onClick={submitReport}
         >
           {submitting ? "Registrando acusação..." : `Confirmar acusação`}
         </button>

@@ -216,6 +216,10 @@ html[data-theme="light"] .accusation-outcome .judgment-panel .judgment-score {
   color: #5a713f;
 }
 
+html[data-theme="light"] .accusation-outcome .judgment-panel .judgment-score-note {
+  color: #526357;
+}
+
 html[data-theme="light"] .judgment-breakdown div {
   border-color: #d8ded1;
   background: #f4f5ed;
@@ -408,6 +412,33 @@ html[data-theme="light"] .single-chance-warning {
 
 html[data-theme="light"] .single-chance-warning span {
   color: #785c50;
+}
+
+html[data-theme="light"] .accusation-extra summary,
+html[data-theme="light"] .accusation-extra label {
+  color: #25372b;
+}
+
+html[data-theme="light"] .accusation-extra p {
+  color: #526357;
+}
+
+html[data-theme="light"] .accusation-extra {
+  border-color: #cbd2c6;
+}
+
+html[data-theme="light"] .accusation-extra summary span {
+  color: #765b31;
+}
+
+html[data-theme="light"] .accusation-extra textarea {
+  border-color: #aebdad;
+  color: #25372b;
+  background: #fffef9;
+}
+
+html[data-theme="light"] .accusation-extra textarea::placeholder {
+  color: #627368;
 }
 
 html[data-theme="light"] .accusation-outcome.correct {

@@ -1403,7 +1403,7 @@ h2 {
 }
 
 .accusation-dialog {
-  width: min(620px, calc(100% - 30px));
+  width: min(720px, calc(100% - 30px));
   max-height: calc(100vh - 30px);
   padding: 0;
   overflow: auto;
@@ -2898,10 +2898,72 @@ h2 {
 }
 
 /* Observabilidade e julgamento — versão 2 */
-.accusation-argument { display: flex; flex-direction: column; gap: .6rem; margin-block: 1.1rem; }
-.accusation-argument label { font-weight: 700; }
-.accusation-argument textarea { width: 100%; min-height: 140px; resize: vertical; border: 1px solid var(--border, #999); padding: .85rem; border-radius: 8px; color: inherit; background: var(--surface, transparent); font: inherit; }
-.accusation-argument small { opacity: .75; }
+.accusation-extra {
+  margin: 22px 0;
+  padding: 16px 18px;
+  border: 1px solid #46564a;
+  text-align: left;
+}
+
+.accusation-extra summary {
+  color: #eee4d2;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.accusation-extra summary span {
+  margin-left: 5px;
+  color: #e0c78f;
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+
+.accusation-extra summary:focus-visible {
+  outline: 2px solid #e0c78f;
+  outline-offset: 5px;
+}
+
+.accusation-extra-content {
+  padding-top: 18px;
+}
+
+.accusation-extra label {
+  color: #eee4d2;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.accusation-extra p {
+  margin: 7px 0 12px;
+  color: #aebcaf;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.accusation-extra textarea {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  padding: 13px 14px;
+  resize: vertical;
+  border: 1px solid #607063;
+  border-radius: 4px;
+  color: #eee4d2;
+  background: #101a14;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.accusation-extra textarea::placeholder {
+  color: #8fa196;
+}
+
+.accusation-extra textarea:focus-visible {
+  outline: 2px solid #e0c78f;
+  outline-offset: 2px;
+}
+
 .insights-panel, .judgment-panel { margin-block: 1.5rem; padding: 1.3rem; border: 1px solid rgba(120,120,120,.35); border-radius: 12px; }
 .insights-panel h2, .judgment-panel h3 { margin: .3rem 0 1rem; }
 .insights-stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 1rem; }
@@ -2935,13 +2997,19 @@ h2 {
   line-height: 1.1;
 }
 
+.accusation-outcome .judgment-panel .judgment-score-note {
+  margin-bottom: 20px;
+  color: #b7c6b8;
+  font-size: 0.82rem;
+}
+
 .accusation-outcome .judgment-panel > p:not(.judgment-score) {
   max-width: 78ch;
 }
 
 .judgment-breakdown {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin: 22px 0 0;
 }
