@@ -25,6 +25,7 @@
     "api/cases/[caseId]/judgment.ts": { "maxDuration": 60 }
   },
   "rewrites": [
+    { "source": "/api/health", "destination": "/api/premises" },
     { "source": "/api/cases/:caseId/status", "destination": "/api/cases/[caseId]/status" },
     { "source": "/api/cases/:caseId/accusation", "destination": "/api/cases/[caseId]/accusation" },
     { "source": "/api/cases/:caseId/insights", "destination": "/api/cases/[caseId]/insights" },

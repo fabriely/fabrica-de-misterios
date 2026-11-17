@@ -8,6 +8,7 @@ import { body, error, internalError, json, methodNotAllowed } from "./_shared/ht
 
 export default {
   async fetch(request: Request) {
+    if (request.method === "GET") return json({ status: "ok", service: "fabrica-api", version: "0.2.0" });
     if (request.method !== "POST") return methodNotAllowed();
     const parsed = createPremisesRequestSchema.safeParse(await body(request));
     if (!parsed.success) return error(400, "invalid_request", "O briefing para criar as premissas é inválido.");
