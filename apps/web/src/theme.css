@@ -67,6 +67,29 @@ html[data-theme="light"] .topbar {
   background: #f8f6f0ed;
 }
 
+html[data-theme="light"] .library-nav-button {
+  color: #765b31;
+  border-color: #cbd2c6;
+  background: #fffdf8;
+}
+
+html[data-theme="light"] .library-nav-button:hover,
+html[data-theme="light"] .library-nav-button[aria-current="page"] { background: #e9ecdf; border-color: #92794f; }
+
+html[data-theme="light"] .library-intro h1,
+html[data-theme="light"] .library-section-heading h2,
+html[data-theme="light"] .library-card h3,
+html[data-theme="light"] .library-import label { color: #25372b; }
+
+html[data-theme="light"] .library-intro p,
+html[data-theme="light"] .library-card > p { color: #526357; }
+
+html[data-theme="light"] .library-import,
+html[data-theme="light"] .library-card { background: #fffdf8; border-color: #cbd2c6; }
+
+html[data-theme="light"] .library-import input { color: #25372b; background: #f8f6f0; border-color: #cbd2c6; }
+html[data-theme="light"] .library-status-ready { color: #407349; }
+
 html[data-theme="light"] .brand strong,
 html[data-theme="light"] .hero-panel h1,
 html[data-theme="light"] .generation-card h1,

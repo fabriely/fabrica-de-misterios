@@ -11,7 +11,7 @@ import { createCase, createPremises, PublicApiError } from "../../api/cases";
 
 type CreateCasePageProps = {
   apiAvailable: boolean;
-  onCaseCreated: (caseId: string) => void;
+  onCaseCreated: (caseId: string, premiseTitle: string) => void;
 };
 
 type FormState = {
@@ -78,7 +78,7 @@ export function CreateCasePage({
     controllerRef.current = controller;
     try {
       const created = await createCase({ premiseSetId: premises.id, premiseId }, controller.signal);
-      onCaseCreated(created.caseId);
+      onCaseCreated(created.caseId, premises.options.find((option) => option.id === premiseId)!.title);
     } catch (error) {
       if (!controller.signal.aborted) {
         setErrorMessage(error instanceof PublicApiError ? error.message : "Não foi possível gerar o caso. Tente novamente.");

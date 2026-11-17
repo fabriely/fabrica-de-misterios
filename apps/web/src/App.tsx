@@ -6,6 +6,8 @@ import { getCaseStatus, PublicApiError } from "./api/cases";
 import { CreateCasePage } from "./features/case-creation/CreateCasePage";
 import { GenerationProgress } from "./features/case-creation/GenerationProgress";
 import { InvestigationPage } from "./features/investigation/InvestigationPage";
+import { CaseLibraryPage } from "./features/case-library/CaseLibraryPage";
+import { saveCase } from "./case-library";
 import { applyTheme, readTheme, saveTheme } from "./theme";
 
 type ApiState =
@@ -48,9 +50,15 @@ export function App() {
     };
   }, []);
 
-  function openCase(caseId: string) {
+  function openCase(caseId: string, premiseTitle?: string) {
+    if (premiseTitle) saveCase(caseId, premiseTitle);
     window.history.pushState({}, "", `/cases/${caseId}`);
     setRoute({ kind: "investigation" as const, caseId });
+  }
+
+  function openLibrary() {
+    window.history.pushState({}, "", "/archive");
+    setRoute({ kind: "library" });
   }
 
   function returnToCreation() {
@@ -76,6 +84,9 @@ export function App() {
         </button>
 
         <div className="topbar-actions">
+          <button className="library-nav-button" type="button" onClick={openLibrary} aria-label="Meus casos" aria-current={route.kind === "library" ? "page" : undefined}>
+            <span className="library-nav-icon" aria-hidden="true">▤</span><span className="library-nav-label">Meus casos</span>
+          </button>
           <button
             className="theme-toggle"
             type="button"
@@ -103,6 +114,8 @@ export function App() {
           apiAvailable={apiState.kind === "online"}
           onCaseCreated={openCase}
         />
+      ) : route.kind === "library" ? (
+        <CaseLibraryPage onOpenCase={openCase} onCreateCase={returnToCreation} />
       ) : (
         <CaseRoutePage
           caseId={route.caseId}
@@ -133,6 +146,7 @@ function CaseRoutePage({ caseId, onReturnHome }: { caseId: string; onReturnHome:
       try {
         const status = await getCaseStatus(caseId, controller.signal);
         if (controller.signal.aborted) return;
+        saveCase(caseId);
         setState({ kind: "status", status });
         if (status.status !== "ready" && status.status !== "failed") {
           timer = window.setTimeout(() => void poll(), 1_000);
@@ -157,9 +171,11 @@ function CaseRoutePage({ caseId, onReturnHome }: { caseId: string; onReturnHome:
 
 type AppRoute =
   | { kind: "creation" }
+  | { kind: "library" }
   | { kind: "investigation"; caseId: string };
 
 function readRoute(): AppRoute {
+  if (/^\/archive\/?$/.test(window.location.pathname)) return { kind: "library" };
   const match = window.location.pathname.match(
     /^\/cases\/([0-9a-f-]{36})\/?$/i,
   );
