@@ -2,7 +2,7 @@
 
 Aplicação para criar e investigar casos fictícios gerados por IA. O jogador escolhe o briefing e uma entre três premissas sem spoilers, examina a cena, suspeitos e documentos, e tem uma chance de acusar alguém antes da revelação completa. Cada jogador investiga o mesmo caso de forma independente.
 
-O projeto é um workspace TypeScript com aplicação React e contratos compartilhados. O desenvolvimento local usa API Node.js e SQLite; a publicação na Vercel usa Functions, Neon Postgres, Blob e Queues. O provedor mock permite testar sem créditos; a OpenAI gera texto e uma imagem por caso quando configurada.
+O projeto é um workspace TypeScript com aplicação React e contratos compartilhados. O desenvolvimento local usa API Node.js e SQLite; a publicação na Vercel usa Functions, Neon Postgres, Blob e Queues. O provedor mock permite testar sem créditos; a OpenAI gera texto, a imagem da cena e uma prancha com os retratos dos suspeitos quando configurada.
 
 ## Requisitos
 
@@ -40,7 +40,7 @@ O andamento do MVP está registrado em [`docs/TASKS.md`](docs/TASKS.md).
 
 A geração textual e a troca entre provedor mock e OpenAI estão descritas em [`docs/generation.md`](docs/generation.md).
 
-A geração de uma única cena, o armazenamento local e o fallback visual estão descritos em [`docs/images.md`](docs/images.md).
+A geração da cena e dos retratos, o armazenamento local e o fallback visual estão descritos em [`docs/images.md`](docs/images.md).
 
 As rotas para criar e consultar casos estão documentadas em [`docs/api.md`](docs/api.md).
 
@@ -74,7 +74,7 @@ O MVP usa SQLite no caminho definido por `database.path`. Na primeira execução
 ## Escopo atual
 
 - Um caso por criação, com quantidades configuráveis de suspeitos e documentos.
-- Exatamente uma imagem de cena.
+- Uma imagem de cena e uma prancha de retratos dos suspeitos por caso novo.
 - Uma acusação por jogador e caso, sem segunda tentativa.
 - Solução privada até a acusação ser persistida.
 - Sessões anônimas identificadas por um UUID salvo no navegador. O link do caso pode ser compartilhado sem compartilhar a revelação.

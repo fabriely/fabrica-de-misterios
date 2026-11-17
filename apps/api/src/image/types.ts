@@ -4,6 +4,8 @@ export type ImageGenerationRequest = {
   caseId: string;
   prompt: string;
   altText: string;
+  purpose?: "scene" | "portrait_sheet";
+  portraitCount?: number;
 };
 
 export type ImageGenerationUsage = {
@@ -33,5 +35,5 @@ export interface CaseImageGenerator {
 }
 
 export interface ImageStorage {
-  save(caseId: string, image: GeneratedImage): Promise<StoredImage>;
+  save(caseId: string, image: GeneratedImage, kind?: "scene" | "portraits"): Promise<StoredImage>;
 }

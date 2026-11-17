@@ -4,10 +4,11 @@ import { documentTypeLabel } from "./labels";
 
 type DocumentDialogProps = {
   document: CaseDocument;
+  number: number;
   onClose: () => void;
 };
 
-export function DocumentDialog({ document, onClose }: DocumentDialogProps) {
+export function DocumentDialog({ document, number, onClose }: DocumentDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -41,7 +42,7 @@ export function DocumentDialog({ document, onClose }: DocumentDialogProps) {
         </button>
         <header>
           <span>{documentTypeLabel(document.type)}</span>
-          <small>ANEXO DE EVIDÊNCIA · {document.id.toUpperCase()}</small>
+          <small>ANEXO DE EVIDÊNCIA · {String(number).padStart(2, "0")}</small>
           <h2 id="document-dialog-title">{document.title}</h2>
           <p>{document.summary}</p>
         </header>

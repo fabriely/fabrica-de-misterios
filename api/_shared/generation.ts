@@ -1,9 +1,11 @@
-import type { CaseBriefing } from "@fabrica/contracts";
+import type { CaseBriefing, Suspect } from "@fabrica/contracts";
 import { MockPremiseGenerator, OpenAiPremiseGenerator } from "../../apps/api/src/generation/premise-generator.js";
 import { MockCaseGenerator } from "../../apps/api/src/generation/mock-case-generator.js";
 import { OpenAiCaseGenerator } from "../../apps/api/src/generation/openai-case-generator.js";
 import { SvgImageGenerator } from "../../apps/api/src/image/svg-image-generator.js";
 import { OpenAiImageGenerator } from "../../apps/api/src/image/openai-image-generator.js";
+import { portraitSheetRequest } from "../../apps/api/src/image/portrait-sheet.js";
+import type { ImageGenerationRequest } from "../../apps/api/src/image/types.js";
 import type { AppConfig } from "../../apps/api/src/config/schema.js";
 
 export function generationConfig(): AppConfig {
@@ -44,8 +46,15 @@ export async function generateCase(briefing: CaseBriefing, premise: { id: "premi
 }
 
 export async function generateImage(caseId: string, prompt: string, altText: string) {
+  return generateImageRequest({ caseId, prompt, altText, purpose: "scene" });
+}
+
+export async function generatePortraitSheet(caseId: string, briefing: CaseBriefing, suspects: Suspect[]) {
+  return generateImageRequest(portraitSheetRequest(caseId, briefing, suspects));
+}
+
+async function generateImageRequest(request: ImageGenerationRequest) {
   const config = generationConfig();
-  const request = { caseId, prompt, altText };
   try {
     return config.generation.provider === "mock"
       ? await new SvgImageGenerator("mock").generate(request)

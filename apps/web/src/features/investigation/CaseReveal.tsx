@@ -1,5 +1,6 @@
 import type { AccusationResult, PublicCase } from "@fabrica/contracts";
 import { documentTypeLabel } from "./labels";
+import { portraitSheetStyle } from "./portraits";
 
 type CaseRevealProps = {
   dossier: PublicCase;
@@ -17,6 +18,7 @@ export function CaseReveal({
   const culprit = dossier.suspects.find(
     (suspect) => suspect.id === reveal.culpritId,
   );
+  const culpritIndex = dossier.suspects.findIndex((suspect) => suspect.id === reveal.culpritId);
   const evidence = reveal.decisiveEvidenceIds.map((evidenceId) => {
     const document = dossier.documents.find((item) => item.id === evidenceId);
     if (document) {
@@ -65,8 +67,12 @@ export function CaseReveal({
       </section>
 
       <section className="culprit-reveal">
-        <div className="culprit-portrait" aria-hidden="true">
-          <span>{initials(reveal.culpritName)}</span>
+        <div
+          className={`culprit-portrait${dossier.portraitSheetUrl ? " has-portrait" : ""}`}
+          style={portraitSheetStyle(dossier, culpritIndex)}
+          aria-hidden="true"
+        >
+          {dossier.portraitSheetUrl ? null : <span>{initials(reveal.culpritName)}</span>}
           <small>IDENTIFICADO</small>
         </div>
         <div>

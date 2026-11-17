@@ -72,6 +72,19 @@ describe("OpenAiImageGenerator", () => {
       ),
     ).rejects.toThrow(/dados da imagem/);
   });
+
+  it("requests a neutral portrait sheet without hiding the culprit's face", async () => {
+    const generate = vi.fn().mockResolvedValue({
+      data: [{ b64_json: Buffer.from("portrait-sheet").toString("base64") }],
+    });
+    const client = { images: { generate } } as unknown as Pick<OpenAI, "images">;
+    const generator = new OpenAiImageGenerator(openAiImageConfig(), client);
+
+    await generator.generate({ ...imageRequest(), purpose: "portrait_sheet", portraitCount: 3 });
+
+    expect(generate.mock.calls[0]?.[0].prompt).toContain("Sem textos, legendas");
+    expect(generate.mock.calls[0]?.[0].prompt).not.toContain("rosto do culpado");
+  });
 });
 
 describe("LocalImageStorage", () => {
@@ -88,6 +101,22 @@ describe("LocalImageStorage", () => {
     expect(stored.publicUrl).toBe(`/generated-images/${CASE_ID}.svg`);
     expect(stored.filePath).toBe(path.join(directory, "scenes", `${CASE_ID}.svg`));
     expect(await readFile(stored.filePath, "utf8")).toContain("Cena do caso");
+  });
+
+  it("keeps the portrait sheet separate from the scene image", async () => {
+    const directory = await createTemporaryDirectory();
+    const storage = new LocalImageStorage(imagesConfig(), directory);
+    const scene = await new SvgImageGenerator().generate(imageRequest());
+    const portraits = await new SvgImageGenerator().generate({
+      ...imageRequest(), purpose: "portrait_sheet", portraitCount: 3,
+    });
+
+    const sceneFile = await storage.save(CASE_ID, scene);
+    const portraitFile = await storage.save(CASE_ID, portraits, "portraits");
+
+    expect(sceneFile.publicUrl).toBe(`/generated-images/${CASE_ID}.svg`);
+    expect(portraitFile.publicUrl).toBe(`/generated-images/${CASE_ID}-portraits.svg`);
+    expect(await readFile(portraitFile.filePath, "utf8")).toContain("Retratos ilustrativos dos suspeitos");
   });
 });
 
@@ -106,6 +135,7 @@ describe("CaseImageGenerationService", () => {
 
     expect(result).toMatchObject({
       imageUrl: `/generated-images/${CASE_ID}.svg`,
+      portraitSheetUrl: `/generated-images/${CASE_ID}-portraits.svg`,
       isFallback: false,
       image: { metadata: { provider: "mock" } },
     });
@@ -115,6 +145,9 @@ describe("CaseImageGenerationService", () => {
     });
     expect(repository.findPublicCase(CASE_ID)?.scene.imageUrl).toBe(
       result.imageUrl,
+    );
+    expect(repository.findPublicCase(CASE_ID)?.portraitSheetUrl).toBe(
+      result.portraitSheetUrl,
     );
     expect(repository.findImageMetadata(CASE_ID)).toMatchObject({
       provider: "mock",

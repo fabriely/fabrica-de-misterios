@@ -108,6 +108,7 @@ describe("public game API", () => {
         expect.objectContaining({ id: "suspect_1" }),
       ]),
       scene: { imageUrl: `/generated-images/${caseId}.svg` },
+      portraitSheetUrl: `/generated-images/${caseId}-portraits.svg`,
     });
     expect(dossier.body).not.toContain("culpritId");
     expect(dossier.body).not.toContain("decisiveEvidenceIds");
@@ -120,6 +121,14 @@ describe("public game API", () => {
     expect(image.headers["content-type"]).toContain("image/svg+xml");
     expect(image.headers["cache-control"]).toContain("immutable");
     expect(image.body).toContain("Cena do caso");
+
+    const portraits = await context.app.inject({
+      method: "GET",
+      url: dossier.json().portraitSheetUrl as string,
+    });
+    expect(portraits.statusCode).toBe(200);
+    expect(portraits.headers["content-type"]).toContain("image/svg+xml");
+    expect(portraits.body).toContain("Retratos ilustrativos dos suspeitos");
 
     const accusation = await context.app.inject({
       method: "POST",
