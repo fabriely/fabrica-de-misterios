@@ -28,7 +28,7 @@ As funções de geração e revisão têm limite de 60 segundos no Hobby. Cada c
 
 ## Limites e custos
 
-A API limita globalmente a 15 conjuntos de premissas e cinco casos por hora. O plano Hobby da Vercel, o Blob e o Neon têm faixas gratuitas, com limites próprios. A OpenAI cobra separadamente por geração de texto, imagem e revisões. O painel usa tarifas configuradas em `AI_PRICING_JSON`; sem tarifa, exibe custo desconhecido. Configure um limite de gasto no projeto da OpenAI antes de divulgar o link amplamente. [Preços da Vercel](https://vercel.com/pricing) · [Blob](https://vercel.com/docs/vercel-blob/usage-and-pricing) · [OpenAI](https://developers.openai.com/api/docs/pricing)
+A API limita globalmente a 15 conjuntos de premissas e cinco casos por hora. O plano Hobby da Vercel, o Blob e o Neon têm faixas gratuitas, com limites próprios. A OpenAI cobra separadamente por geração de texto, imagem e revisões. O painel usa tarifas configuradas em `AI_PRICING_JSON`, com tarifa Standard padrão para `gpt-6.1-terra`; sem tarifa para os demais modelos, exibe custo desconhecido. Configure um limite de gasto no projeto da OpenAI antes de divulgar o link amplamente. [Preços da Vercel](https://vercel.com/pricing) · [Blob](https://vercel.com/docs/vercel-blob/usage-and-pricing) · [OpenAI](https://developers.openai.com/api/docs/pricing)
 
 ## Estado da validação
 

@@ -24,6 +24,25 @@ describe("instrumentação, qualidade e julgamento",()=>{
     expect(estimateCostUsd("scene_image",{provider:"openai",model:"custom-model"})).toBe(.05);
     expect(estimateCostUsd("scene_image",{provider:"fallback",model:"svg"})).toBeNull();
   });
+  it("calcula o juiz visual Terra sem configuração de preços", async()=>{
+    delete process.env.AI_PRICING_JSON;
+    const entries: Array<{estimatedCostUsd:number|null}> = [];
+    await measured((entry)=>{entries.push(entry);},"visual_review",{caseId},async()=>({
+      model:"gpt-6.1-terra",usage:{inputTokens:1000,outputTokens:500,totalTokens:1500},
+    }),(result)=>({provider:"openai",model:result!.model,usage:result!.usage}));
+    expect(entries[0]?.estimatedCostUsd).toBe(.0035);
+    expect(estimateCostUsd("visual_review",{provider:"openai",model:"gpt-6.1-terra-2026-11-01",usage:{inputTokens:1000,outputTokens:500}})).toBe(.0035);
+    expect(estimateCostUsd("visual_review",{provider:"openai",model:"gpt-6.1-terra"})).toBeNull();
+  });
+  it("mantém tarifas existentes e permite substituir o preço do Terra",()=>{
+    process.env.AI_PRICING_JSON=JSON.stringify({"custom-model":{inputPerMillion:2,outputPerMillion:8}});
+    const usage={inputTokens:1000,outputTokens:500};
+    expect(estimateCostUsd("visual_review",{provider:"openai",model:"gpt-6.1-terra",usage})).toBe(.0035);
+    expect(estimateCostUsd("case_text",{provider:"openai",model:"custom-model",usage})).toBe(.006);
+    process.env.AI_PRICING_JSON=JSON.stringify({"gpt-6.1-terra":{inputPerMillion:2,outputPerMillion:8}});
+    expect(estimateCostUsd("visual_review",{provider:"openai",model:"gpt-6.1-terra",usage})).toBe(.006);
+    expect(estimateCostUsd("visual_review",{provider:"openai",model:"gpt-6.1-terra-2026-11-01",usage})).toBe(.006);
+  });
   it("registra operação de sucesso e de falha sem esconder o erro",async()=>{
     const entries: Array<{status:string;durationMs:number}> = [];
     const meter = (entry:{status:"completed"|"failed";durationMs:number})=>{entries.push(entry);};

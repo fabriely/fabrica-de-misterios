@@ -3,7 +3,7 @@
 ## Funcionalidades
 
 - Métricas persistidas por caso: geração de premissas, texto, cena, retratos, revisão visual, revisão de qualidade narrativa e julgamento. Cada nova tentativa de cena e sua revisão são registradas separadamente. Operações malsucedidas também são registradas com duração e custo **desconhecido** quando o provedor não fornece faturamento por tentativa.
-- Custo em USD **estimado**, com tabela de preços informada explicitamente pelo operador; sem preços configurados, o valor aparece como `null` / não precificado. O painel apresenta tanto tempo total de geração (parede) quanto soma de latências de operações, que não representa tempo de parede (cena e retratos são paralelos).
+- Custo em USD **estimado**, com tarifas Standard padrão para `gpt-6.1-terra` e tabela de preços configurável pelo operador; sem uma tarifa disponível, o valor aparece como `null` / não precificado. O painel apresenta tanto tempo total de geração (parede) quanto soma de latências de operações, que não representa tempo de parede (cena e retratos são paralelos).
 - Qualidade separada em solucionabilidade (30), lógica (25), evidências (20), justiça (15) e originalidade (10). O avaliador LLM recebe dossiê público e solução privada; é uma estimativa, não certificação da consistência do enredo.
 - Jurado LLM: suspeito selecionado por ID, argumentação livre, análise de evidências (30), motivo (15), método (10), cronologia (10) e acerto do culpado calculado **no servidor** (35). Parecer persistido e recuperável; retriable em falha sem segunda acusação. Provedor `mock` dá zero nos critérios interpretativos e registra aviso explícito de simulação.
 - A revelação da solução agora ocorre exclusivamente após ação do jogador; ao reabrir o caso, o veredito é carregado, não o gabarito.
@@ -26,9 +26,9 @@
 {"nome-do-modelo-texto":{"inputPerMillion":1,"outputPerMillion":4},"nome-do-modelo-imagem":{"perImage":0.04}}
 ```
 
-A configuração só calcula preços fornecidos. Retornos de imagem do fallback são classificados como custo desconhecido, pois a chamada anterior pode ter sido faturada.
+A configuração calcula preços fornecidos e permite substituí-los por modelo. Sem uma tarifa personalizada, `gpt-6.1-terra` (incluindo versões com sufixo de data) usa as tarifas Standard da OpenAI (US$ 1 por milhão de tokens de entrada e US$ 5 por milhão de saída, consultadas em 18/11/2026 na [tabela oficial](https://developers.openai.com/api/docs/pricing)). Retornos de imagem do fallback são classificados como custo desconhecido, pois a chamada anterior pode ter sido faturada.
 
-Para os modelos padrão, o `.env` local contém as tarifas Standard consultadas em 17/11/2026: `gpt-6-luna` (entrada US$ 0,10 e saída US$ 0,50 por milhão de tokens) e `gpt-image-2.5-flare` (entrada de texto US$ 5, entrada de imagem US$ 8 e saída de imagem US$ 30 por milhão de tokens). Fontes: [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) e [GPT Image 2.5 Flare](https://developers.openai.com/api/docs/models/gpt-image-2.5-flare). A estimativa de imagem requer a divisão de tokens de entrada retornada pela API. Na Vercel, configure `AI_PRICING_JSON` nas variáveis do projeto também. Operações já salvas não são recalculadas quando a tarifa muda.
+Para os modelos padrão, o `.env` local contém as tarifas Standard consultadas em 17/11/2026: `gpt-6-luna` (entrada US$ 0,10 e saída US$ 0,50 por milhão de tokens) e `gpt-image-2.5-flare` (entrada de texto US$ 5, entrada de imagem US$ 8 e saída de imagem US$ 30 por milhão de tokens). Fontes: [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) e [GPT Image 2.5 Flare](https://developers.openai.com/api/docs/models/gpt-image-2.5-flare). A estimativa de imagem requer a divisão de tokens de entrada retornada pela API. Na Vercel, configure `AI_PRICING_JSON` para outros modelos ou para substituir as tarifas padrão. Operações já salvas não são recalculadas quando a tarifa muda.
 
 ## Aplicação e verificações
 
