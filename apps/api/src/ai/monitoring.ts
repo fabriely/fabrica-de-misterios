@@ -6,14 +6,22 @@ export type Usage = { inputTokens?: number | null; outputTokens?: number | null;
 export type OperationDetails = { provider: string; model: string; usage?: Usage | undefined; isFallback?: boolean | undefined };
 export type Meter = (entry: AiOperation) => void | Promise<void>;
 
-/** Prices are operator-supplied, in USD; never silently assume live API tariffs. */
+/** Prices are USD per million tokens unless a per-image rate is supplied. */
 export function estimateCostUsd(stage: OperationStage, details: OperationDetails): number | null {
   if (details.provider === "mock") return 0;
   if (details.provider === "fallback") return null;
-  let prices: Record<string, { inputPerMillion?: number; outputPerMillion?: number; inputTextPerMillion?: number; inputImagePerMillion?: number; perImage?: number }>;
-  try { prices = JSON.parse(process.env.AI_PRICING_JSON ?? "{}"); } catch { return null; }
-  if (!prices || typeof prices !== "object" || Array.isArray(prices)) return null;
-  const price = prices[details.model];
+  const prices: Record<string, { inputPerMillion?: number; outputPerMillion?: number; inputTextPerMillion?: number; inputImagePerMillion?: number; perImage?: number }> = {
+    // OpenAI Standard rates, checked 2026-11-18. Used for the default visual judge.
+    "gpt-6.1-terra": { inputPerMillion: 1, outputPerMillion: 5 },
+  };
+  try {
+    const configured = JSON.parse(process.env.AI_PRICING_JSON ?? "{}");
+    if (!configured || typeof configured !== "object" || Array.isArray(configured)) return null;
+    Object.assign(prices, configured);
+  } catch { return null; }
+  // Responses may return a dated snapshot instead of the requested alias.
+  const modelFamily = details.model.replace(/-\d{4}-\d{2}-\d{2}$/, "");
+  const price = prices[details.model] ?? (modelFamily === "gpt-6.1-terra" ? prices[modelFamily] : undefined);
   if (!price) return null;
   if (["scene_image", "portraits_image"].includes(stage) && price.inputTextPerMillion !== undefined && price.inputImagePerMillion !== undefined) {
     const text = details.usage?.inputTextTokens;
